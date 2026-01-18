@@ -22,7 +22,7 @@
 > Actions/topics are stubbed to satisfy linting. After importing connector, update actions to `InvokeConnectorAction` and topics to call them.
 
 ### Function Key
-- Default key (as of 2026-01-18): `l75VFecjUpmUKsdPUE_4oWI_XbKN2deW-eYveeQta2YTAzFudx869g==`
+- Default key (as of 2026-01-18): `see secrets`
 - Rotate via: `az functionapp keys set/list -g rg-rlm-showcase-uksouth -n rlm-engine-uksouth`
 ## Direct Foundry Agent (optional)
 - `actions/rlm-root-agent.mcs.yml` uses Azure Agent Service connector to talk directly to Foundry root agent (`rlm-root-agent:1`).
