@@ -38,7 +38,7 @@ def serve_openapi(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json",
         )
 
-@app.route(route="audit/start", methods=["POST"])
+@app.route(route="audit/start", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
 async def start_audit(req: func.HttpRequest) -> func.HttpResponse:
     """
     Start an audit job.
@@ -102,7 +102,7 @@ async def start_audit(req: func.HttpRequest) -> func.HttpResponse:
              mimetype="application/json"
         )
 
-@app.route(route="audit/status/{job_id}", methods=["GET"])
+@app.route(route="audit/status/{job_id}", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 async def get_status(req: func.HttpRequest) -> func.HttpResponse:
     """Get the status of a specific job"""
     job_id = req.route_params.get('job_id')
