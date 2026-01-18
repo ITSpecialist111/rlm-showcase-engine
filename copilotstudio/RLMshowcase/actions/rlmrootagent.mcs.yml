@@ -1,12 +1,12 @@
-# Name: rlm-root-agent
+# Name: rlm root agent
 kind: TaskDialog
 inputs:
   - kind: ManualTaskInput
     propertyName: AgentId
-    value: rlm-root-agent:1
+    value: rlm-root-agent:2
 
-modelDisplayName: rlm-root-agent
-modelDescription: Root agent for RLM orchestration.
+modelDisplayName: rlm root agent
+modelDescription: You are the Root Agent for a Recursive Language Model (RLM) system designed to handle large-scale queries with 10M+ token contexts.
 action:
   kind: InvokeExternalAgentTaskAction
   connectionReference: copilots_header_54b8d.shared_azureagentservice.f4b923cb18a741bc8ae85778baa3a00a

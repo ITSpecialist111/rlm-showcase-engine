@@ -1,0 +1,21 @@
+# Name: RLM Functions - Start an audit job
+# StartAuditJob
+kind: TaskDialog
+modelDisplayName: Start an audit job
+modelDescription: Start an audit job
+outputs:
+  - propertyName: job_id
+
+  - propertyName: message
+
+  - propertyName: status
+
+action:
+  kind: InvokeConnectorTaskAction
+  connectionReference: copilots_header_54b8d.shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91.645ed375a27b4386ae1fde046445e3ff
+  connectionProperties:
+    mode: Invoker
+
+  operationId: start_audit
+
+outputMode: All

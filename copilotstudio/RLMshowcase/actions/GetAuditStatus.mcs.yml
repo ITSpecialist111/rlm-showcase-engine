@@ -1,0 +1,36 @@
+# Name: RLM Functions - Get audit status by job_id
+kind: TaskDialog
+modelDisplayName: Get audit status by job_id
+modelDescription: Get audit status by job_id
+outputs:
+  - propertyName: created_at
+
+  - propertyName: job_id
+
+  - propertyName: logs
+
+  - propertyName: logs_text
+
+  - propertyName: message
+
+  - propertyName: progress_percent
+
+  - propertyName: result
+
+  - propertyName: summary
+
+  - propertyName: details
+
+  - propertyName: status
+
+  - propertyName: updated_at
+
+action:
+  kind: InvokeConnectorTaskAction
+  connectionReference: copilots_header_54b8d.shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91.645ed375a27b4386ae1fde046445e3ff
+  connectionProperties:
+    mode: Invoker
+
+  operationId: get_audit_status
+
+outputMode: All

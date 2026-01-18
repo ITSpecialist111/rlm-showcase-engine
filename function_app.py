@@ -12,7 +12,7 @@ from status_manager import status_manager
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
-@app.route(route="openapi.json", methods=["GET"])
+@app.route(route="openapi.json", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def serve_openapi(req: func.HttpRequest) -> func.HttpResponse:
     """Serve the OpenAPI specification for custom connectors."""
     try:
@@ -53,11 +53,8 @@ async def start_audit(req: func.HttpRequest) -> func.HttpResponse:
         documents = req_body.get('documents', []) # For now, simple list. Later, blob support.
         
         if not query:
-            return func.HttpResponse(
-                json.dumps({"error": "Please pass a query in the request body"}),
-                status_code=400,
-                mimetype="application/json"
-            )
+            query = "Full policy compliance audit"
+            logging.info("No query provided; defaulting to 'Full policy compliance audit'")
 
         # Create Job ID
         job_id = status_manager.create_job()
@@ -119,11 +116,19 @@ async def get_status(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     # Convenience: join logs for display in Adaptive Cards / connectors
-    if isinstance(status, dict) and "logs" in status and "logs_text" not in status:
-        try:
-            status["logs_text"] = "\n".join(status.get("logs", []))
-        except Exception:
-            status["logs_text"] = ""
+    if isinstance(status, dict):
+        # Convenience: join logs for display in Adaptive Cards / connectors
+        if "logs" in status and "logs_text" not in status:
+            try:
+                status["logs_text"] = "\n".join(status.get("logs", []))
+            except Exception:
+                status["logs_text"] = ""
+
+        # Lift common fields for easier connector bindings
+        result_obj = status.get("result")
+        if isinstance(result_obj, dict):
+            status.setdefault("summary", result_obj.get("summary"))
+            status.setdefault("details", result_obj.get("details"))
 
     return func.HttpResponse(
         json.dumps(status),
@@ -139,7 +144,8 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
         logging.info(f"Starting background task for job {job_id} (Scenario: {scenario})")
         status_manager.update_status(job_id, "Initializing RLM Engine...", 10, "running")
         
-        # Initialize Engine
+        logging.info(f"Initializing RLM Config with Endpoint: {settings.FOUNDRY_ENDPOINT}")
+        logging.info(f"Initializing RLM Config with API Key: {'*' * 4 if settings.FOUNDRY_API_KEY else 'NONE'}")
         config = RLMConfig(
             foundry_endpoint=settings.FOUNDRY_ENDPOINT,
             api_key=settings.FOUNDRY_API_KEY,

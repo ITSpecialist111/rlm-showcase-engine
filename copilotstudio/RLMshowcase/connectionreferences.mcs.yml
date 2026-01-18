@@ -1,5 +1,5 @@
 ﻿connectionReferences:
   - connectionReferenceLogicalName: copilots_header_54b8d.shared_azureagentservice.f4b923cb18a741bc8ae85778baa3a00a
     connectorId: /providers/Microsoft.PowerApps/apis/shared_azureagentservice
-  - connectionReferenceLogicalName: copilots_header_54b8d.shared_rlmfunctions
-    connectorId: /providers/Microsoft.PowerApps/apis/shared_rlmfunctions
+  - connectionReferenceLogicalName: copilots_header_54b8d.shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91.645ed375a27b4386ae1fde046445e3ff
+    connectorId: /providers/Microsoft.PowerApps/apis/shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91
