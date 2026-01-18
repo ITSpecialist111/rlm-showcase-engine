@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment Variables
+.env
+.env.local
+local.settings.json
+
+# Azure
+.azure/
+*.ResourceGroup.json
+deployment_output.json
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+test_results.xml
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# Node modules (for JavaScript clients)
+node_modules/
+npm-debug.log
+
+# C# build output
+bin/
+obj/
+*.csproj.user
