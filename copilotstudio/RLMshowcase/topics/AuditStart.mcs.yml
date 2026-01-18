@@ -1,0 +1,39 @@
+# Name: Audit Start
+kind: AdaptiveDialog
+beginDialog:
+  kind: OnIntent
+  id: AuditStart
+  intent: AuditStart
+  utterances:
+    - run audit
+    - audit invoices
+    - audit code
+    - start audit
+  actions:
+    - kind: SetVariable
+      id: set-scenario
+      property: Topic.scenario
+      value: =If(Contains(Lower(System.Activity.Text), "code"), "code_audit", "invoice_audit")
+
+    - kind: BeginDialog
+      id: call-start-audit
+      dialog: actions.start_audit
+      resultProperty: Topic.startResult
+      dialogInputs:
+        - property: query
+          value: =System.Activity.Text
+        - property: scenario
+          value: =Topic.scenario
+
+    - kind: SetVariable
+      id: set-job-id
+      property: Topic.job_id
+      value: =Topic.startResult.job_id
+
+    - kind: SendActivity
+      id: notify
+      activity: =Concat("Started audit job: ", Topic.job_id, ". I'll poll once now; say 'audit poll' to check again.")
+
+    - kind: BeginDialog
+      id: first-poll
+      dialog: topics.AuditPoll

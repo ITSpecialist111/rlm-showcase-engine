@@ -2,12 +2,12 @@
 
 ## Overview
 
-The Recursive Language Model (RLM) Showcase Engine is a production-ready implementation of hierarchical language model architecture designed for Azure Foundry. It supports processing documents with 10M+ token contexts through intelligent chunking and multi-agent orchestration.
+The Recursive Language Model (RLM) Showcase Engine is a production-ready implementation of hierarchical language model architecture designed for Microsoft Foundry. It supports processing documents with 10M+ token contexts through intelligent chunking and multi-agent orchestration.
 
 ## Prerequisites
 
 - Python 3.9+
-- - Azure subscription with Foundry access
+- - Subscription with Microsoft Foundry access
   - - Git
     - - Docker (optional, for containerized deployment)
      
@@ -38,10 +38,10 @@ The Recursive Language Model (RLM) Showcase Engine is a production-ready impleme
         # Copy environment template
         cp .env.example .env
 
-        # Edit .env with your Azure Foundry credentials
+        # Edit .env with your Microsoft Foundry credentials
         # Required fields:
-        # - FOUNDRY_ENDPOINT: Your Foundry API endpoint
-        # - FOUNDRY_API_KEY: Your API key
+        # - FOUNDRY_ENDPOINT: Your Microsoft Foundry API endpoint
+        # - FOUNDRY_API_KEY: Your Microsoft Foundry API key
         # - AZURE_SUBSCRIPTION_ID: Your subscription ID
         # - ROOT_AGENT_ENDPOINT: Root agent endpoint
         # - SUB_AGENT_ENDPOINT: Sub-agent endpoint
@@ -321,5 +321,5 @@ The Recursive Language Model (RLM) Showcase Engine is a production-ready impleme
                                          - [ ] - Initial release
                                          - [ ] - Core RLM engine implementation
                                          - [ ] - Hierarchical agent support
-                                         - [ ] - Azure Foundry integration
+                                         - [ ] - Microsoft Foundry integration
                                          - [ ] - 10M+ token context support

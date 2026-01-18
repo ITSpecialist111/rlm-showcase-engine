@@ -1,0 +1,14 @@
+GLOBAL EXPENSE POLICY 2026
+    
+1. TRAVEL
+- Economy class only for flights under 6 hours.
+- Business class requires VP approval.
+- Maximum flight cost without prior auth: $2,500.
+
+2. MEALS
+- Daily limit: $75 per person.
+- No alcohol expensed without client present.
+
+3. APPROVALS
+- Invoices > $1,000 require Manager approval.
+- Invoices > $5,000 require Director approval.

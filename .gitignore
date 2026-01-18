@@ -27,7 +27,7 @@ env/
 .venv
 
 # IDE
-.vscode/
+
 .idea/
 *.swp
 *.swo
@@ -70,3 +70,5 @@ npm-debug.log
 bin/
 obj/
 *.csproj.user
+
+.python_packages

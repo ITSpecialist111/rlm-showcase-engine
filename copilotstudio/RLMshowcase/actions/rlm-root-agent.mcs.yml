@@ -1,0 +1,18 @@
+# Name: rlm-root-agent
+kind: TaskDialog
+inputs:
+  - kind: ManualTaskInput
+    propertyName: AgentId
+    value: rlm-root-agent:1
+
+modelDisplayName: rlm-root-agent
+modelDescription: Root agent for RLM orchestration.
+action:
+  kind: InvokeExternalAgentTaskAction
+  connectionReference: copilots_header_54b8d.shared_azureagentservice.f4b923cb18a741bc8ae85778baa3a00a
+  connectionProperties:
+    mode: Invoker
+
+  operationDetails:
+    kind: ActivityProtocolMetadata
+    operationId: SendActivity

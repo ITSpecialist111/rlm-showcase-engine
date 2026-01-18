@@ -1,0 +1,32 @@
+# Name: Audit Poll
+kind: AdaptiveDialog
+beginDialog:
+  kind: OnBeginDialog
+  id: AuditPoll
+  actions:
+    - kind: BeginDialog
+      id: call-get-status
+      dialog: actions.get_audit_status
+      resultProperty: Topic.statusResult
+      dialogInputs:
+        - property: job_id
+          value: =Topic.job_id
+
+    - kind: SendActivity
+      id: send-status
+      activity: =Concat("Status: ", Topic.statusResult.status, ", progress: ", string(Topic.statusResult.progress_percent), "%.")
+
+    - kind: ConditionGroup
+      id: status-complete
+      conditions:
+        - id: is-complete
+          condition: =Or(Equals(Lower(Topic.statusResult.status), "completed"), Equals(Lower(Topic.statusResult.status), "failed"))
+          actions:
+            - kind: SendActivity
+              id: send-result
+              activity: =If(!IsBlank(Topic.statusResult.logs), Join('\n', Topic.statusResult.logs), "")
+            - kind: EndDialog
+
+    - kind: SendActivity
+      id: prompt-again
+      activity: Poll again by saying **audit poll**.

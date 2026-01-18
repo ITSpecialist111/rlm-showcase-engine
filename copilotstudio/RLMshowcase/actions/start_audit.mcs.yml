@@ -1,0 +1,24 @@
+# Name: start_audit
+kind: TaskDialog
+inputs:
+  - kind: ManualTaskInput
+    propertyName: query
+    value: ""
+  - kind: ManualTaskInput
+    propertyName: scenario
+    value: invoice_audit
+  - kind: ManualTaskInput
+    propertyName: documents
+    value: ""
+
+modelDisplayName: start_audit
+modelDescription: Start an audit job via Azure Function (invoice or code)
+action:
+  kind: InvokeConnectorAction
+  # TODO: replace with actual connector reference logical name after importing copilot/openapi.json
+  connectionReference: copilots_header_54b8d.shared_rlmfunctions
+  operationId: start_audit
+  parameters:
+    query: =dialog.query
+    scenario: =dialog.scenario
+    documents: =dialog.documents

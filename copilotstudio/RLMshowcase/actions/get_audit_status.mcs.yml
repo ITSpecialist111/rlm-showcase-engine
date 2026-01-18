@@ -1,0 +1,16 @@
+# Name: get_audit_status
+kind: TaskDialog
+inputs:
+  - kind: ManualTaskInput
+    propertyName: job_id
+    value: ""
+
+modelDisplayName: get_audit_status
+modelDescription: Get audit status by job_id via Azure Function
+action:
+  kind: InvokeConnectorAction
+  # TODO: replace with actual connector reference logical name after importing copilot/openapi.json
+  connectionReference: copilots_header_54b8d.shared_rlmfunctions
+  operationId: get_audit_status
+  parameters:
+    job_id: =dialog.job_id

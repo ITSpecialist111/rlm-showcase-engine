@@ -1,0 +1,142 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "RLM Showcase Functions API",
+    "version": "1.0.0",
+    "description": "Audit start/status endpoints for Copilot Studio actions"
+  },
+  "servers": [
+    {
+      "url": "https://<your-function-app>.azurewebsites.net/api",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/audit/start": {
+      "post": {
+        "operationId": "start_audit",
+        "summary": "Start an audit job",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartAuditRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartAuditResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          { "functions_key": [] }
+        ]
+      }
+    },
+    "/audit/status/{job_id}": {
+      "get": {
+        "operationId": "get_audit_status",
+        "summary": "Get audit status by job_id",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          { "functions_key": [] }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "functions_key": {
+        "type": "apiKey",
+        "name": "x-functions-key",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "StartAuditRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Audit query or regex for code audit"
+          },
+          "documents": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Optional documents for invoice audit"
+          },
+          "scenario": {
+            "type": "string",
+            "enum": ["invoice_audit", "code_audit"],
+            "default": "invoice_audit"
+          }
+        }
+      },
+      "StartAuditResponse": {
+        "type": "object",
+        "properties": {
+          "job_id": { "type": "string" },
+          "status": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "JobStatus": {
+        "type": "object",
+        "properties": {
+          "job_id": { "type": "string" },
+          "status": { "type": "string", "description": "queued|running|completed|failed" },
+          "created_at": { "type": "string" },
+          "updated_at": { "type": "string" },
+          "progress_percent": { "type": "integer" },
+          "message": { "type": "string" },
+          "logs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}
