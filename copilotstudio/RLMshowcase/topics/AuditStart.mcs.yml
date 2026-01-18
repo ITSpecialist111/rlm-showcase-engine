@@ -1,39 +1,42 @@
 # Name: Audit Start
 kind: AdaptiveDialog
 beginDialog:
-  kind: OnIntent
+  kind: OnRecognizedIntent
   id: AuditStart
-  intent: AuditStart
-  utterances:
-    - run audit
-    - audit invoices
-    - audit code
-    - start audit
+  intent:
+    displayName: AuditStart
+    includeInOnSelectIntent: false
+    triggerQueries:
+      - run audit
+      - audit invoices
+      - audit code
+      - start audit
   actions:
-    - kind: SetVariable
-      id: set-scenario
-      property: Topic.scenario
-      value: =If(Contains(Lower(System.Activity.Text), "code"), "code_audit", "invoice_audit")
-
-    - kind: BeginDialog
-      id: call-start-audit
-      dialog: actions.start_audit
-      resultProperty: Topic.startResult
-      dialogInputs:
-        - property: query
-          value: =System.Activity.Text
-        - property: scenario
-          value: =Topic.scenario
-
-    - kind: SetVariable
-      id: set-job-id
-      property: Topic.job_id
-      value: =Topic.startResult.job_id
+    - kind: InvokeConnectorAction
+      id: invoke_start_audit
+      connectionReference: copilots_header_54b8d.shared_rlmfunctions
+      connectionProperties:
+        mode: Invoker
+      operationId: start_audit
+      parameters:
+        query: "Find policy violations"
+        scenario: "invoice_audit"
+        documents: []
+      outputParameters:
+        job_id: Global.JobId
 
     - kind: SendActivity
-      id: notify
-      activity: =Concat("Started audit job: ", Topic.job_id, ". I'll poll once now; say 'audit poll' to check again.")
+      id: notify_start
+      activity:
+        text:
+          - "Audit Started! Job ID: {Global.JobId}."
 
+    - kind: SendActivity
+      id: prompt_poll
+      activity: 
+        text:
+          - "I will check the status for you..."
+          
     - kind: BeginDialog
-      id: first-poll
-      dialog: topics.AuditPoll
+      id: go_to_poll
+      dialog: AuditPoll

@@ -12,6 +12,32 @@ from status_manager import status_manager
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
+@app.route(route="openapi.json", methods=["GET"])
+def serve_openapi(req: func.HttpRequest) -> func.HttpResponse:
+    """Serve the OpenAPI specification for custom connectors."""
+    try:
+        root_dir = os.path.dirname(__file__)
+        candidates = [
+            os.path.join(root_dir, "openapi.json"),
+            os.path.join(root_dir, "copilot", "openapi.json"),
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    return func.HttpResponse(f.read(), mimetype="application/json")
+        return func.HttpResponse(
+            json.dumps({"error": "openapi.json not found"}),
+            status_code=404,
+            mimetype="application/json",
+        )
+    except Exception as e:
+        logging.error(f"Error serving openapi.json: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}),
+            status_code=500,
+            mimetype="application/json",
+        )
+
 @app.route(route="audit/start", methods=["POST"])
 async def start_audit(req: func.HttpRequest) -> func.HttpResponse:
     """
@@ -91,6 +117,13 @@ async def get_status(req: func.HttpRequest) -> func.HttpResponse:
             status_code=404,
             mimetype="application/json"
         )
+
+    # Convenience: join logs for display in Adaptive Cards / connectors
+    if isinstance(status, dict) and "logs" in status and "logs_text" not in status:
+        try:
+            status["logs_text"] = "\n".join(status.get("logs", []))
+        except Exception:
+            status["logs_text"] = ""
 
     return func.HttpResponse(
         json.dumps(status),

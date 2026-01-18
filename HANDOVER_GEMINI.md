@@ -31,11 +31,70 @@ python -m pytest -q
 - `adaptive_cards/polling_status.json`: Copilot Studio UI (expects `title`, `status`, `progress`, `logs_text`).
 - `copilotstudio/RLMshowcase/`: Copilot agent clone with actions (`start_audit`, `get_audit_status`, optional `rlm-root-agent`), topics (`AuditStart`, `AuditPoll`, `AuditStatus`), connector placeholder `shared_rlmfunctions`, README with setup steps.
 
+### Copilot Studio Agent Configuration Syntax (VS Code / .mcs)
+- `agent.mcs.yml`
+  - `kind: GptComponentMetadata`
+  - `instructions: |` **use plain text**. Avoid `{}` or `{{}}` (Power Platform expression parser). Use `/audit/status/:job_id` style in examples (not `{job_id}`). Provide examples as plain text, not JSON blocks.
+  - Example snippet:
+    ```yaml
+    kind: GptComponentMetadata
+    displayName: RLMshowcase
+    instructions: |
+      You are **Compliance Auditor & Code Archaeologist**...
+      - Poll status via GET /audit/status/:job_id
+      - Sample: query "(?i)run_code_audit", scenario "code_audit"
+    ```
+- `connectionreferences.mcs.yml`
+  - Replace placeholder logical name `copilots_header_54b8d.shared_rlmfunctions` with actual custom connector logical name.
+- `actions/start_audit.mcs.yml`, `actions/get_audit_status.mcs.yml`
+  - Use `InvokeConnectorAction`:
+    ```yaml
+    action:
+      kind: InvokeConnectorAction
+      connectionReference: <your_logical_name>
+      connectionProperties:
+        mode: Fixed
+      operationId: start_audit
+      parameters:
+        query: =Topic.query ?? "Audit invoices"
+        scenario: =Topic.scenario ?? "invoice_audit"
+    ```
+  - For status:
+    ```yaml
+    action:
+      kind: InvokeConnectorAction
+      connectionReference: <your_logical_name>
+      connectionProperties:
+        mode: Fixed
+      operationId: get_audit_status
+      parameters:
+        job_id: =Topic.job_id
+    ```
+- Topics (`AuditStart`, `AuditPoll`, `AuditStatus`)
+  - Call the above actions; store `Topic.job_id` on start; reuse in polls.
+  - Optional: bind `adaptive_cards/polling_status.json` to show `title`, `status`, `progress`, `logs_text`.
+
+### Flex Consumption Deployment (Python 3.13)
+- Remote build **unsupported**; bundle Linux deps via Docker.
+- Build inside Functions container:
+  ```powershell
+  docker run --rm -v C:\Users\graham\Documents\GitHub\rlm-showcase-engine:/app -w /app \
+    mcr.microsoft.com/azure-functions/python:4-python3.13 bash -c "
+      apt-get update && apt-get install -y build-essential rustc cargo && \
+      /opt/python/3.13.11/bin/pip install maturin==1.3.3 && \
+      PIP_NO_BUILD_ISOLATION=1 /opt/python/3.13.11/bin/pip install pydantic-core==2.14.1 --no-binary pydantic-core -v && \
+      PIP_NO_BUILD_ISOLATION=1 /opt/python/3.13.11/bin/pip install -r requirements.txt -t .python_packages/lib/site-packages
+    "
+  ```
+- Publish: `func azure functionapp publish rlm-engine-uksouth --python --no-build --no-app-settings`
+- App settings: `FOUNDRY_ENDPOINT`, `FOUNDRY_API_KEY`, `WORKSPACE_ROOT=/home/site/wwwroot` (no SCM_DO_BUILD_*).
+- Troubleshoot: `/admin/functions` 500 ⇒ deps missing. SCM logstream not available on Flex.
+
 ## 🚧 Deployment Status
-- **Not deployed**. Function App `rlm-engine-uksouth` missing.
-- **Blocker:** UK South Shared VMs quota = 0 (ExtendedCode `70007`). Plan creation fails (`Y1`, `B1`, `EP1`).
-- **Ready:** Storage account `rlmdocumentsstorage`, `host.json`, `local.settings.json`.
-- **Need:** Quota increase or existing App Service plan, then create Function App.
+- **Deployed:** `rlm-engine-uksouth` (Flex Consumption **Python 3.11**) with bundled deps.
+- **Storage:** `rgrlmshowcaseuksoutaebe` / `app-package-rlm-engine-uksouth-c0520e5`
+- **Functions:** `POST /api/audit/start`, `GET /api/audit/status/{job_id}`
+- **Notes:** `/admin/host/status` may 404 during warmup; SCM logstream not exposed on Flex.
 
 ## 🧩 Foundry Project
 - **Project:** `rlm-showcase-uksouth`
@@ -72,6 +131,21 @@ az openai agent list \
   --project-name rlm-showcase-uksouth
 ```
 
+### 👉 Flex Consumption Deploy Steps (Python 3.11)
+```powershell
+docker run --rm -v C:\Users\graham\Documents\GitHub\rlm-showcase-engine:/app -w /app \
+  mcr.microsoft.com/azure-functions/python:4-python3.11 \
+  bash -c "python -m pip install -r requirements.txt -t .python_packages/lib/site-packages"
+
+func azure functionapp publish rlm-engine-uksouth --python --no-build --no-app-settings
+```
+
+**App Settings**
+- `FOUNDRY_ENDPOINT=https://rlm-showcase-uksouth-resource.services.ai.azure.com/api/projects/rlm-showcase-uksouth`
+- `FOUNDRY_API_KEY=<set>`
+- `WORKSPACE_ROOT=/home/site/wwwroot`
+> Do **NOT** set `SCM_DO_BUILD_DURING_DEPLOYMENT` on Flex.
+
 ### 👉 List agents via local scripts
 ```bash
 python list_agents.py          # AI Projects endpoint using token_ai.txt
@@ -94,9 +168,11 @@ func azure functionapp publish rlm-engine-uksouth --python
 - Request quota / use existing plan; create Function App; publish.
 - Wire `code_search` tool into agent tool loop; add `codeaudit` endpoints.
 - Import `copilot/openapi.json`, update connector placeholders, publish Copilot agent, wire Adaptive Card.
+- Build & publish Flex app with bundled deps; verify `/api/audit/start` responds 202.
 
 ## 💬 Prompts for Gemini
 - "Summarize role of `execute_code_search` and how to integrate as a tool call in RLM agent loop."
 - "Generate Azure Functions Python v4 durable pattern to offload long-running audit jobs."
 - "Design Adaptive Card schema for streaming job logs (status_manager logs)."
 - "Outline Copilot Studio connector setup using `copilot/openapi.json` and topic wiring (AuditStart/AuditPoll/AuditStatus)."
+ - "Explain Copilot Studio `.mcs` instructions syntax constraints (no `{}` / `{{}}`; use plain text examples; `:job_id` path)."

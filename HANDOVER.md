@@ -1,8 +1,8 @@
 # RLM Showcase Engine - Project Handover Document
 
 **Date Created:** 2026-01-18
-**Project Status:** Phase 2 - 85% Complete (Backend Ready)
-**Last Updated:** 2026-01-18 13:30:00
+**Project Status:** Phase 2 - 90% Complete (Backend Ready; Frontend Defined)
+**Last Updated:** 2026-01-18 17:50:00
 
 ---
 
@@ -68,135 +68,77 @@ User (Copilot Studio)
 
 ### Completed Components (100% Code Complete)
 
-1.  **RLM Engine (`rlm_engine.py`)**
+1.  **RLM Engine (`rlm_engine.py`)** (The Brain)
     -   Hierarchical Agents (Root + Sub).
     -   Async/Await architecture for parallel processing.
-    -   **NEW:** Progress Callback system for real-time status updates.
-    -   **NEW (Scenario 2 helper):** `execute_code_search` safe repo regex scan (not yet wired into agent loop).
+    -   **NEW (Scenario 2 helper):** `execute_code_search` safe repo regex scan.
 
-2.  **API Layer (`function_app.py`)**
+2.  **API Layer (`function_app.py`)** (The Hands)
     -   `POST /api/audit/start`: Initiates background job, returns `job_id`.
     -   `GET /api/audit/status/{job_id}`: Returns status, percentage, and detailed logs.
-    -   **MOCK MODE Included:** If no Blob URL is passed, it loads the 50 generated text files automatically for the demo.
+    -   **Flex Consumption Support:** Code is ready for Python 3.11 remote build.
 
-3.  **Infrastructure (`config.py`, `status_manager.py`)**
-    -   Pydantic-based configuration.
-    -   Job status tracking (queued -> running -> completed/failed).
-
-4.  **Mock Data (`mock_data/`)**
-    -   Generated 50 unique invoices.
-    -   **Invoice #42** contains the "Business Class" violation for the demo payoff.
-    -   Asset: `compliance_audit_data.zip` (Ready for upload).
+3.  **Infrastructure**
+    -   **Deployed Resource:** `rlm-engine-uksouth` (Flex Consumption FC1, UK South).
+    -   **Blocker Resolved:** Quota fixed by using Flex plan.
 
 ---
 
-## 🔄 Updates (2026-01-18)
-- Added `execute_code_search` helper in `rlm_engine.py` for Scenario 2 (safe regex scan).
-- Added `tests/test_code_archeologist.py` (async code search test).
-- Updated `requirements.txt`: removed `numpy` and PyPI `asyncio`; bumped `aiohttp==3.9.5`; added `pydantic-settings`.
-- `config.py` now includes defaults for `FOUNDRY_ENDPOINT` and `FOUNDRY_API_KEY` for local/tests.
-- Wired `run_code_audit` + `tool_execution` in `rlm_engine.py`; `function_app.py` routes `scenario="code_audit"` to repo scan.
-- Added `adaptive_cards/polling_status.json` for Copilot Studio UI.
-- **Copilot Studio agent (RLMshowcase)** added under `copilotstudio/RLMshowcase/`:
-    - Actions: `start_audit`, `get_audit_status` (Function connector placeholder `shared_rlmfunctions`).
-    - Topics: `AuditStart` (starts audit, first poll), `AuditPoll` (single poll), `AuditStatus` (manual status).
-    - Optional direct Foundry action: `rlm-root-agent` (Azure Agent Service connector).
-    - README with connector import steps (`copilot/openapi.json`).
+## 🤖 Copilot Studio Integration (The "Face")
+
+We are implementing an **"Agent-to-Agent"** pattern. The User speaks to the Copilot Studio Agent, which acts as a "Receptionist," delegating the heavy cognitive workload to the "Backend Agent" running in Azure Foundry/Functions.
+
+### Workflow
+1.  **Intent**: User says "Run Audit".
+2.  **Delegation (Topic: AuditStart)**: Copilot calls `start_audit` on the Function.
+3.  **Persistence**: Copilot receives a `job_id` and stores it in `Global.JobId`.
+4.  **Streaming (Topic: AuditPoll)**: Copilot enters a recursive loop:
+    -   Call `get_audit_status(job_id)`.
+    -   Update UI with `Status` and `Progress%`.
+    -   If not complete, wait 2s and repeat.
+    -   If complete, show final summary.
+
+### Manual Configuration Guide (UI)
+*If code deployment fails, configure via Copilot Studio Design Tab:*
+
+**1. Add Connector**
+-   Import `copilot/openapi.json` as a Custom Connector (`rlmfunctions`).
+
+**2. Topic: "Audit Start"** (Triggers: "run audit", "audit invoices")
+-   **Step 1**: Call Action `start_audit`.
+    -   Inputs: `scenario="invoice_audit"`.
+-   **Step 2**: Set Variable.
+    -   Take output `job_id`.
+    -   Rename variable to `Global.JobId` (Scope: Global).
+-   **Step 3**: Redirect to Topic -> "Audit Poll".
+
+**3. Topic: "Audit Poll"** (Triggers: "check status")
+-   **Step 1**: Call Action `get_audit_status`.
+    -   Input: `Global.JobId`.
+-   **Step 2**: Send Message.
+    -   "Status: {Status} ({Progress}%)".
+-   **Step 3**: Condition.
+    -   If `Status` = "completed" -> Show Result.
+    -   Else -> Redirect to Topic "Audit Poll" (Loop).
 
 ---
 
-## 🚀 How to Run the "Killer Demo"
+## 🚀 Deployment Instructions
 
-### Prerequisites
--   **Subscription:** Subscription No.2 (UK South)
--   **Service:** Microsoft Foundry (ai.azure.com)
-
-### Step 1: Deploy Backend
-1.  Deploy `function_app.py` to your Function App in UK South.
-2.  Set Environment Variables in Azure (`FOUNDRY_ENDPOINT`, `FOUNDRY_API_KEY`).
-
-### Step 2: Configure Copilot Studio
-1. **Import custom connector** from `copilot/openapi.json` (create `rlmfunctions` connector, set host to your Function App, set `x-functions-key`).
-2. **Update connection references** in `copilotstudio/RLMshowcase/connectionreferences.mcs.yml` and actions (`shared_rlmfunctions` placeholder).
-3. **Use actions** `start_audit` and `get_audit_status` (already defined in `copilotstudio/RLMshowcase/actions/`).
-4. **Topics** (already scaffolded):
-    - `AuditStart` → calls `start_audit`, stores `Topic.job_id`, runs one poll via `AuditPoll`.
-    - `AuditPoll` → calls `get_audit_status`, prints progress/logs (user can invoke again).
-    - `AuditStatus` → manual status check.
-5. **Adaptive Card**: Bind `title`, `status`, `progress`, `logs_text` to `adaptive_cards/polling_status.json` (optional UI step).
-6. **Optional**: `rlm-root-agent` action (direct Foundry agent via Azure Agent Service) — bypasses Python RLM engine; use only if you want direct Foundry.
-
-### Step 3: Execute
-1.  Type "Run Audit" (for invoices) or invoke `scenario="code_audit"` with `query` regex to scan repo.
-2.  Watch the logs stream (The "Thinking" Process).
-3.  Celebrate when it catches Invoice #42.
-
----
-
-## 🧪 Testing
-
-```
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python -m pytest tests/test_code_archeologist.py -q
-python -m pytest -q
-```
-
-**Results (2026-01-18):**
-- `tests/test_code_archeologist.py` ✅
-- Full suite ✅ (pydantic V2 deprecation warning only)
-
-> Note: `config.py` defaults enable tests without env vars. If using real Foundry, set `FOUNDRY_ENDPOINT` and `FOUNDRY_API_KEY`.
-
----
-
-## 🚧 Deployment Status (2026-01-18)
-- **Not deployed**: Function App `rlm-engine-uksouth` not found.
-- **Blocker**: **Shared VMs quota = 0** in **UK South**; plan creation (Consumption `Y1`, Basic `B1`, Premium `EP1`) fails with `Unauthorized` (ExtendedCode `70007`).
-- **What’s ready**: `host.json`, `local.settings.json`, storage account `rlmdocumentsstorage` in `rg-rlm-showcase-uksouth`.
-- **Need**: Request quota increase or use existing plan, then create Function App.
-
-### Foundry Project & Agents
-- **Project:** `rlm-showcase-uksouth`
-- **Account:** `rlm-showcase-uksouth-resource` (Cognitive Services)
-- **Endpoint (AI Projects):** `https://rlm-showcase-uksouth-resource.services.ai.azure.com/api/projects/rlm-showcase-uksouth`
-- **OpenAI Endpoint:** `https://rlm-showcase-uksouth-resource.openai.azure.com/`
-- **Agent listing:** `azure.ai.projects` / `azure.ai.agents` and raw HTTP currently return **API version not supported** (service rewrites to `agents.uksouth.hyena.infra.ai.azure.com`). Agents are present (per portal), but CLI/SDK listing is blocked until correct extension/API is available.
-
-**Recommended verification:**
-- Use Microsoft Foundry portal to confirm the two agents.
-- Or, when available, install the Foundry/Agents CLI extension and run:
-    ```bash
-    az login
-    az <foundry-extension> agent list \
-        --resource-group rg-rlm-showcase-uksouth \
-        --resource-name rlm-showcase-uksouth-resource \
-        --project-name rlm-showcase-uksouth
-    ```
-
-- Local scripts: `python list_agents.py` (AI Projects), `python list_agents_openai.py` (OpenAI endpoint) with `token_ai.txt` / `token.txt`.
-
-### After Quota/Plan Exists
+### 1. Deploy Backend (Azure functions)
+**Strategy:** Use **Python 3.11** on **Flex Consumption** to avoid Docker complexity.
 ```powershell
-# Create App Service plan (example)
-New-AzFunctionAppPlan -Name plan-rlm-showcase-uksouth -ResourceGroupName rg-rlm-showcase-uksouth -Location uksouth -Sku EP1 -WorkerType Linux
-
-# Create Function App
-New-AzFunctionApp -Name rlm-engine-uksouth `
-    -ResourceGroupName rg-rlm-showcase-uksouth `
-    -Location uksouth `
-    -StorageAccountName rlmdocumentsstorage `
-    -PlanName plan-rlm-showcase-uksouth `
-    -Runtime python -RuntimeVersion 3.12 -FunctionsVersion 4
-
-# Publish
+# In VS Code Terminal
 func azure functionapp publish rlm-engine-uksouth --python
 ```
+**App Settings**: `FOUNDRY_ENDPOINT`, `FOUNDRY_API_KEY`, `WORKSPACE_ROOT=/home/site/wwwroot`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true`.
+
+### 2. Monitoring
+-   **App Insights**: Check `customEvents` table for `audit_job_created` and `audit_status_update` to debug the backend loop.
 
 ---
 
 ## 📝 Next Steps
--   [ ] **Deploy to Azure**: resolve quota → create plan → create app → `func azure functionapp publish ...`
--   [ ] **Frontend Integration**: Import `copilot/openapi.json`, update `shared_rlmfunctions` connection reference, publish `RLMshowcase` agent, wire Adaptive Card.
--   [ ] **Scenario 2**: Wire `code_search` tool into `RLMEngine` + add `codeaudit` Function endpoints.
+-   [ ] **Publish Code**: Run the `func publish` command above.
+-   [ ] **Configure Copilot**: Use the "Manual Configuration Guide" above to wire up the topics in the UI.
+-   [ ] **Test**: Run a full E2E audit from the Copilot chat window.

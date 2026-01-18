@@ -116,7 +116,8 @@
           "job_id": { "type": "string" },
           "status": { "type": "string" },
           "message": { "type": "string" }
-        }
+        },
+        "required": ["job_id", "status"]
       },
       "JobStatus": {
         "type": "object",
@@ -131,11 +132,16 @@
             "type": "array",
             "items": { "type": "string" }
           },
+          "logs_text": {
+            "type": "string",
+            "description": "Logs joined by newline for display convenience"
+          },
           "result": {
             "type": "object",
             "additionalProperties": true
           }
-        }
+        },
+        "required": ["job_id", "status", "progress_percent"]
       }
     }
   }

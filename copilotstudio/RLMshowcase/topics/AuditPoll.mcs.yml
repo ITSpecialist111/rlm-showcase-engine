@@ -1,32 +1,64 @@
 # Name: Audit Poll
 kind: AdaptiveDialog
 beginDialog:
-  kind: OnBeginDialog
+  kind: OnRecognizedIntent
   id: AuditPoll
+  intent:
+    displayName: AuditPoll
+    includeInOnSelectIntent: false
+    triggerQueries:
+      - audit poll
+      - check status
   actions:
-    - kind: BeginDialog
-      id: call-get-status
-      dialog: actions.get_audit_status
-      resultProperty: Topic.statusResult
-      dialogInputs:
-        - property: job_id
-          value: =Topic.job_id
+    - kind: InvokeConnectorAction
+      id: invoke_get_status
+      connectionReference: copilots_header_54b8d.shared_rlmfunctions
+      connectionProperties:
+        mode: Invoker
+      operationId: get_audit_status
+      parameters:
+        job_id: Global.JobId
+      outputParameters:
+        status: Topic.Status
+        progress_percent: Topic.Progress
+        logs: Topic.Logs
+        result: Topic.Result
 
     - kind: SendActivity
-      id: send-status
-      activity: =Concat("Status: ", Topic.statusResult.status, ", progress: ", string(Topic.statusResult.progress_percent), "%.")
+      id: show_status
+      activity:
+        text:
+          - "Status: {Topic.Status} ({Topic.Progress}%)"
 
     - kind: ConditionGroup
-      id: status-complete
+      id: check_completion
       conditions:
-        - id: is-complete
-          condition: =Or(Equals(Lower(Topic.statusResult.status), "completed"), Equals(Lower(Topic.statusResult.status), "failed"))
+        - id: if_completed
+          condition: =Topic.Status = "completed"
           actions:
             - kind: SendActivity
-              id: send-result
-              activity: =If(!IsBlank(Topic.statusResult.logs), Join('\n', Topic.statusResult.logs), "")
-            - kind: EndDialog
+              id: show_result
+              activity:
+                text:
+                  - "✅ **Audit Complete!**"
+        
+        - id: if_failed
+          condition: =Topic.Status = "failed"
+          actions:
+             - kind: SendActivity
+               id: show_error
+               activity:
+                 text:
+                   - "❌ **Audit Failed**."
 
-    - kind: SendActivity
-      id: prompt-again
-      activity: Poll again by saying **audit poll**.
+      elseActions:
+        - kind: SendActivity
+          id: wait_msg
+          activity:
+            text: 
+              - "Still processing... checking again shortly."
+        
+        # Simplified loop without DelayAction to avoid schema errors
+        - kind: BeginDialog
+          id: loop_poll
+          dialog: AuditPoll

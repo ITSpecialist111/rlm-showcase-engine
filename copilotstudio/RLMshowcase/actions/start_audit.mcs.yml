@@ -2,23 +2,16 @@
 kind: TaskDialog
 inputs:
   - kind: ManualTaskInput
-    propertyName: query
-    value: ""
-  - kind: ManualTaskInput
-    propertyName: scenario
-    value: invoice_audit
-  - kind: ManualTaskInput
-    propertyName: documents
-    value: ""
+    propertyName: AgentId
+    value: start-audit:1
 
 modelDisplayName: start_audit
-modelDescription: Start an audit job via Azure Function (invoice or code)
+modelDescription: Stub action (replace with connector start_audit)
 action:
-  kind: InvokeConnectorAction
-  # TODO: replace with actual connector reference logical name after importing copilot/openapi.json
-  connectionReference: copilots_header_54b8d.shared_rlmfunctions
-  operationId: start_audit
-  parameters:
-    query: =dialog.query
-    scenario: =dialog.scenario
-    documents: =dialog.documents
+  kind: InvokeExternalAgentTaskAction
+  connectionReference: copilots_header_54b8d.shared_azureagentservice.f4b923cb18a741bc8ae85778baa3a00a
+  connectionProperties:
+    mode: Invoker
+  operationDetails:
+    kind: ActivityProtocolMetadata
+    operationId: SendActivity

@@ -7,7 +7,7 @@ python-dotenv==1.0.0
 pytest==7.4.3
 pytest-asyncio==0.23.2
 # asyncio is in the stdlib; avoid PyPI package
-aiohttp==3.9.5
+aiohttp==3.13.3
 requests==2.31.0
 azure-functions==1.18.0
 applicationinsights==0.11.10

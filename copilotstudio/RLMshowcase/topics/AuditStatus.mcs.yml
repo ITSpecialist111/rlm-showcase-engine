@@ -1,32 +1,18 @@
 # Name: Audit Status
 kind: AdaptiveDialog
 beginDialog:
-  kind: OnIntent
+  kind: OnRecognizedIntent
   id: AuditStatus
-  intent: AuditStatus
-  utterances:
-    - audit status
-    - check audit status
-    - status
+  intent:
+    displayName: AuditStatus
+    includeInOnSelectIntent: false
+    triggerQueries:
+      - audit status
+      - check audit status
+      - status
   actions:
-    - kind: BeginDialog
-      id: call-get-status
-      dialog: actions.get_audit_status
-      resultProperty: Topic.statusResult
-      dialogInputs:
-        - property: job_id
-          value: =If(!IsBlank(Topic.job_id), Topic.job_id, System.Activity.Text)
-
     - kind: SendActivity
       id: send-status
-      activity: =Concat("Status: ", Topic.statusResult.status, ", progress: ", string(Topic.statusResult.progress_percent), "%.")
-
-    - kind: ConditionGroup
-      id: has-logs
-      conditions:
-        - id: logs-present
-          condition: =!IsBlank(Topic.statusResult.logs)
-          actions:
-            - kind: SendActivity
-              id: send-logs
-              activity: =Join('\n', Topic.statusResult.logs)
+      activity:
+        text:
+          - "Stub: get_audit_status action exists. Configure connector and dialog bindings in Copilot Studio."
