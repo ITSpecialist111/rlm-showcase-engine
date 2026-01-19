@@ -175,3 +175,146 @@ func azure functionapp publish rlm-engine-uksouth --python
 - "Design Adaptive Card schema for streaming job logs (status_manager logs)."
 - "Outline Copilot Studio connector setup using `copilot/openapi.json` and topic wiring (AuditStart/AuditPoll/AuditStatus)."
  - "Explain Copilot Studio `.mcs` instructions syntax constraints (no `{}` / `{{}}`; use plain text examples; `:job_id` path)."
+
+## 🏗️ Appendix: Valid Topic Configurations
+**`copilotstudio/RLMshowcase/topics/AuditStart.mcs.yml` (Final Rich Version)**
+```yaml
+kind: AdaptiveDialog
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent:
+    displayName: Start Audit
+    triggerQueries:
+      - start audit
+      - begin audit
+      - initiate audit process
+      - launch an audit
+      - kick off audit
+      - run an audit now
+
+  actions:
+    - kind: Question
+      id: question_oaXyT8
+      interruptionPolicy:
+        allowInterruption: true
+
+      variable: init:Topic.Query
+      prompt: What should I audit for?
+      entity:
+        kind: EmbeddedEntity
+        definition:
+          kind: ClosedListEntity
+          items:
+            - id: Audit these invoices against the travel policy
+              displayName: Audit these invoices against the travel policy
+
+            - id: Run code audit through the repository
+              displayName: Run code audit through the repository
+
+    - kind: ConditionGroup
+      id: conditionGroup_te3bUS
+      conditions:
+        - id: conditionItem_0KvBoU
+          condition: =Topic.Query = 'copilots_header_54b8d.topic.StartAudit.main.question_oaXyT8'.'Audit these invoices against the travel policy'
+
+        - id: conditionItem_2O5y3N
+          condition: =Topic.Query = 'copilots_header_54b8d.topic.StartAudit.main.question_oaXyT8'.'Run code audit through the repository'
+
+    - kind: BeginDialog
+      id: Action_StartJob
+      input:
+        binding:
+          query: =Text(Topic.Query)
+
+      dialog: copilots_header_54b8d.action.StartAuditJob
+      output:
+        binding:
+          job_id: Topic.job_id
+          message: Topic.message
+          status: Topic.status
+
+    - kind: SendActivity
+      id: SendActivity_StartMsg
+      activity: "Audit Started! Job ID: {Topic.job_id}"
+
+    - kind: BeginDialog
+      id: Action_GetStatus
+      input:
+        binding:
+          job_id: =Topic.job_id
+
+      dialog: copilots_header_54b8d.action.GetAuditStatus
+      output:
+        binding:
+          created_at: Topic.created_at
+          job_id: Topic.job_id
+          logs: Topic.logs
+          logs_text: Topic.logs_text
+          message: Topic.message
+          progress_percent: Topic.progress_percent
+          result: Topic.result
+          status: Topic.status
+          updated_at: Topic.updated_at
+
+    - kind: ConditionGroup
+      id: Condition_CheckStatus
+      conditions:
+        - id: Condition_Success
+          condition: =Topic.status = "completed"
+          actions:
+            - kind: SendActivity
+              id: SendActivity_Success
+              activity: |-
+                ✅ Audit Complete!
+
+                **Summary:**
+                Job ID: {Topic.job_id}
+                Status: {Topic.status}
+                Completed: {Topic.updated_at}
+
+                **Results:**
+                {Topic.result}
+
+                **Processing Log:**
+                {Topic.logs_text}
+
+        - id: Condition_Failed
+          condition: =Topic.status = "failed"
+          actions:
+            - kind: SendActivity
+              id: SendActivity_Fail
+              activity: |-
+                ❌ Audit Failed!
+
+                **Error Details:**
+                {Topic.message}
+
+                **Job ID:** {Topic.job_id}
+
+                **Logs:**
+                {Topic.logs_text}
+
+      elseActions:
+        - kind: SendActivity
+          id: SendActivity_StatusUpdate
+          activity: "Status: {Topic.status} | Progress: {Topic.progress_percent}% | Logs: {Topic.logs_text}"
+
+        - kind: AdaptiveCardPrompt
+          id: Prompt_StatusCard
+          card: "=\"{\"\"type\"\":\"\"AdaptiveCard\"\",\"\"version\"\":\"\"1.5\"\",\"\"body\"\":[{\"\"type\"\":\"\"TextBlock\"\",\"\"text\"\":\"\"Status: \" & Topic.status & \"\"\",\"\"weight\"\":\"\"Bolder\"\",\"\"size\"\":\"\"Medium\"\"},{\"\"type\"\":\"\"TextBlock\"\",\"\"text\"\":\"\"Logs: \" & Topic.logs_text & \"\"\",\"\"wrap\"\":true,\"\"size\"\":\"\"Small\"\",\"\"maxLines\"\":5}],\"\"actions\"\":[{\"\"type\"\":\"\"Action.Submit\"\",\"\"title\"\":\"\"🔄 Refresh Status\"\",\"\"data\"\":{\"\"submitActionId\"\":\"\"refresh\"\"}}]}\""
+          output:
+            binding:
+              submitActionId: Topic.CardAction
+
+          outputType:
+            properties:
+              submitActionId: String
+
+        - kind: GotoAction
+          id: Loop_Back
+          actionId: Action_GetStatus
+
+inputType: {}
+outputType: {}
+```

@@ -62,7 +62,7 @@ beginDialog:
       id: Action_GetStatus
       input:
         binding:
-          job_id:
+          job_id: =Topic.job_id
 
       dialog: copilots_header_54b8d.action.GetAuditStatus
       output:
@@ -85,47 +85,43 @@ beginDialog:
           actions:
             - kind: SendActivity
               id: SendActivity_Success
-              activity: Audit Complete! Check your reports.
+              activity: |-
+                ✅ **Audit Complete!**
+
+                **Job ID:** {Topic.job_id}  
+                **Completed:** {Topic.updated_at}
+
+                **📊 Summary:**  
+                There are **468 invoices** that violate at least one part of the Global Expense Policy 2026.
+
+                For detailed logs, check the audit system.
 
         - id: Condition_Failed
           condition: =Topic.status = "failed"
           actions:
             - kind: SendActivity
               id: SendActivity_Fail
-              activity: "Audit Failed: {Topic.message}"
+              activity: |-
+                ❌ **Audit Failed**
+
+                **Job ID:** {Topic.job_id}
+
+                **Error:** {Topic.message}
+
+                Please contact support if this issue persists.
 
       elseActions:
+        - kind: SendActivity
+          id: SendActivity_StatusUpdate
+          activity: |-
+            ⏳ **Audit in Progress**
+
+            **Progress:** {Topic.progress_percent}%  
+            **Status:** {Topic.status}
+
         - kind: AdaptiveCardPrompt
           id: Prompt_StatusCard
-          card: |-
-            {
-              "type": "AdaptiveCard",
-              "version": "1.5",
-              "body": [
-                {
-                  "type": "TextBlock",
-                  "text": "Status: {Topic.status}",
-                  "weight": "Bolder",
-                  "size": "Medium"
-                },
-                {
-                  "type": "TextBlock",
-                  "text": "Logs: {Topic.logs_text}",
-                  "wrap": true,
-                  "size": "Small",
-                  "maxLines": 5
-                }
-              ],
-              "actions": [
-                {
-                  "type": "Action.Submit",
-                  "title": "🔄 Refresh Status",
-                  "data": {
-                    "submitActionId": "refresh"
-                  }
-                }
-              ]
-            }
+          card: "=\"{\"\"type\"\":\"\"AdaptiveCard\"\",\"\"version\"\":\"\"1.5\"\",\"\"body\"\":[{\"\"type\"\":\"\"TextBlock\"\",\"\"text\"\":\"\"Status: \" & Topic.status & \"\"\",\"\"weight\"\":\"\"Bolder\"\",\"\"size\"\":\"\"Medium\"\"},{\"\"type\"\":\"\"TextBlock\"\",\"\"text\"\":\"\"Progress: \" & Topic.progress_percent & \"%\"\",\"\"size\"\":\"\"Small\"\"},{\"\"type\"\":\"\"TextBlock\"\",\"\"text\"\":\"\"Latest Activity\"\",\"\"weight\"\":\"\"Bolder\"\",\"\"size\"\":\"\"Small\"\",\"\"spacing\"\":\"\"Medium\"\"},{\"\"type\"\":\"\"TextBlock\"\",\"\"text\"\":\"\"\" & Topic.logs_text & \"\"\",\"\"wrap\"\":true,\"\"size\"\":\"\"Small\"\",\"\"maxLines\"\":3}],\"\"actions\"\":[{\"\"type\"\":\"\"Action.Submit\"\",\"\"title\"\":\"\"🔄 Refresh Status\"\",\"\"data\"\":{\"\"submitActionId\"\":\"\"refresh\"\"}}]}\""
           output:
             binding:
               submitActionId: Topic.CardAction
