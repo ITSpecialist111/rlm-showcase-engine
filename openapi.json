@@ -42,7 +42,9 @@
           }
         },
         "security": [
-          { "functions_key": [] }
+          {
+            "functions_key": []
+          }
         ]
       }
     },
@@ -76,7 +78,9 @@
           }
         },
         "security": [
-          { "functions_key": [] }
+          {
+            "functions_key": []
+          }
         ]
       }
     }
@@ -92,7 +96,7 @@
     "schemas": {
       "StartAuditRequest": {
         "type": "object",
-        "required": ["query"],
+        "required": [],
         "properties": {
           "query": {
             "type": "string",
@@ -100,12 +104,17 @@
           },
           "documents": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "Optional documents for invoice audit"
           },
           "scenario": {
             "type": "string",
-            "enum": ["invoice_audit", "code_audit"],
+            "enum": [
+              "invoice_audit",
+              "code_audit"
+            ],
             "default": "invoice_audit"
           }
         }
@@ -113,24 +122,48 @@
       "StartAuditResponse": {
         "type": "object",
         "properties": {
-          "job_id": { "type": "string" },
-          "status": { "type": "string" },
-          "message": { "type": "string" }
+          "job_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
         },
-        "required": ["job_id", "status"]
+        "required": [
+          "job_id",
+          "status"
+        ]
       },
       "JobStatus": {
         "type": "object",
         "properties": {
-          "job_id": { "type": "string" },
-          "status": { "type": "string", "description": "queued|running|completed|failed" },
-          "created_at": { "type": "string" },
-          "updated_at": { "type": "string" },
-          "progress_percent": { "type": "integer" },
-          "message": { "type": "string" },
+          "job_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "queued|running|completed|failed"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "progress_percent": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
           "logs": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
           "logs_text": {
             "type": "string",
@@ -141,7 +174,11 @@
             "additionalProperties": true
           }
         },
-        "required": ["job_id", "status", "progress_percent"]
+        "required": [
+          "job_id",
+          "status",
+          "progress_percent"
+        ]
       }
     }
   }

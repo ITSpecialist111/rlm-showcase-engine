@@ -45,3 +45,5 @@ func azure functionapp publish rlm-engine-uksouth --python
 -   **Duplicate Actions:** We deleted `start_audit.mcs.yml` (etc) in favor of the imported `StartAuditJob`.
 -   **Query Prompting:** Backend now handles empty queries gracefully.
 -   **Validation Errors:** Fixed by matching naming conventions in `.mcs.yml` files.
+-   **Audit Options Card:** StartAudit topic now offers buttons for invoice audit, code audit, or custom query.
+

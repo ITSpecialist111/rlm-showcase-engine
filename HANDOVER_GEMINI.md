@@ -73,6 +73,10 @@ python tests/check_repl.py
 - Topics (`AuditStart`, `AuditPoll`, `AuditStatus`)
   - Call the above actions; store `Topic.job_id` on start; reuse in polls.
   - Optional: bind `adaptive_cards/polling_status.json` to show `title`, `status`, `progress`, `logs_text`.
+  - **New:** `StartAudit` shows card buttons:
+    - 📄 Invoice Compliance → `scenario=invoice_audit`, `blob_container=demo-invoices`
+    - 🧠 Code Audit → `scenario=code_audit`
+    - ✏️ Custom → prompts for query
 
 ### Flex Consumption Deployment (Python 3.11)
 - **Runtime:** Python 3.11 (Recommended for stability).

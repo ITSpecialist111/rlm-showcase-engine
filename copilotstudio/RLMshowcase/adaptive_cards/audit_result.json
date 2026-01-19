@@ -1,0 +1,52 @@
+{
+    "type": "AdaptiveCard",
+    "body": [
+        {
+            "type": "Container",
+            "style": "good",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "✅ Audit Complete",
+                    "weight": "Bolder",
+                    "size": "Medium",
+                    "style": "heading"
+                }
+            ]
+        },
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "${summary}",
+                    "wrap": true,
+                    "weight": "Default"
+                }
+            ]
+        },
+        {
+            "type": "Container",
+            "spacing": "Medium",
+            "separator": true,
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "💡 Reasoning Steps",
+                    "weight": "Bolder",
+                    "size": "Small",
+                    "color": "Accent"
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "${reasoning_text}",
+                    "wrap": true,
+                    "size": "Small",
+                    "isSubtle": true
+                }
+            ]
+        }
+    ],
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.5"
+}

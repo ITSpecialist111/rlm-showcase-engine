@@ -1,0 +1,235 @@
+kind: AdaptiveDialog
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent:
+    displayName: Start Audit
+    triggerQueries:
+      - Start Audit
+      - Run Audit
+      - Audit my invoices
+
+  actions:
+    # --- AUDIT OPTIONS UI START ---
+    - kind: Question
+      id: question_scenario
+      alwaysPrompt: true
+      variable: init:Topic.ScenarioSelection
+      prompt:
+        attachments:
+          - contentType: application/vnd.microsoft.card.adaptive
+            content:
+              type: AdaptiveCard
+              version: "1.5"
+              body:
+                - type: TextBlock
+                  text: "🚀 Select Audit Scenario"
+                  weight: Bolder
+                  size: Large
+                - type: TextBlock
+                  text: "Choose a preset scenario or define your own."
+                  isSubtle: true
+              actions:
+                - type: Action.Submit
+                  title: "📄 Invoice Compliance"
+                  data: "invoice_audit"
+                - type: Action.Submit
+                  title: "🧠 Code Audit"
+                  data: "code_audit"
+                - type: Action.Submit
+                  title: "✏️ Custom Query"
+                  data: "custom"
+
+      entity: StringPrebuiltEntity
+
+    - kind: ConditionGroup
+      id: scenario_logic
+      conditions:
+        - id: invoice_selected
+          condition: =Topic.ScenarioSelection = "invoice_audit"
+          actions:
+            - kind: SetVariable
+              id: set_invoice
+              variable: Topic.Scenario
+              value: "invoice_audit"
+            - kind: SetVariable
+              id: set_invoice_query
+              variable: Topic.Query
+              value: "Full policy compliance audit"
+
+        - id: code_selected
+          condition: =Topic.ScenarioSelection = "code_audit"
+          actions:
+            - kind: SetVariable
+              id: set_code
+              variable: Topic.Scenario
+              value: "code_audit"
+            - kind: SetVariable
+              id: set_code_query
+              variable: Topic.Query
+              value: "Scan repo for risky patterns"
+
+      elseActions:
+        # Custom logic
+        - kind: Question
+          id: question_custom_query
+          alwaysPrompt: true
+          variable: init:Topic.Query
+          prompt: "What should I audit for?"
+          entity: StringPrebuiltEntity
+        - kind: SetVariable
+          id: set_custom_scenario
+          variable: Topic.Scenario
+          value: "invoice_audit" # Default to invoice audit context for custom queries
+
+    # --- START JOB ---
+    - kind: InvokeConnectorTaskAction
+      id: start_audit_action
+      connectionReference: copilots_header_54b8d.shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91.645ed375a27b4386ae1fde046445e3ff
+      actionId: StartAuditJob
+      inputs:
+        query: =Topic.Query
+        scenario: =Topic.Scenario
+      outputs:
+        job_id: Topic.JobId
+        message: Topic.StartMessage
+
+    - kind: SendActivity
+      id: send_start_msg
+      activity: "Audit Started! Job ID: {Topic.JobId}"
+
+    - kind: SetVariable
+      id: set_status
+      variable: Topic.Status
+      value: "started"
+
+    # --- MANEUVER TO POLLING ---
+    # We use a Label/Goto strategy or just fall through to the polling section
+    # Since we are in a linear flow, we fall through.
+
+    # --- POLLING LOOP START ---
+    - kind: InvokeConnectorTaskAction
+      id: get_status_action
+      connectionReference: copilots_header_54b8d.shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91.645ed375a27b4386ae1fde046445e3ff
+      actionId: GetAuditStatus
+      inputs:
+        job_id: =Topic.JobId
+      outputs:
+        status: Topic.Status
+        progress_percent: Topic.Progress
+        logs_text: Topic.Logs
+        message: Topic.Message
+        result: Topic.Result
+
+    - kind: Question
+      id: poll_card_display
+      alwaysPrompt: true
+      variable: init:Topic.PollAction
+      prompt:
+        attachments:
+          - contentType: application/vnd.microsoft.card.adaptive
+            content:
+              type: AdaptiveCard
+              version: "1.5"
+              body:
+                - type: TextBlock
+                  text: "🕵️‍♂️ RLM Audit Status"
+                  weight: Bolder
+                  size: Medium
+                - type: FactSet
+                  facts:
+                    - title: "Job ID"
+                      value: "{Topic.JobId}"
+                    - title: "Status"
+                      value: "{Topic.Status}"
+                - type: TextBlock
+                  text: "{Topic.Message}"
+                  wrap: true
+                  color: Accent
+                - type: TextBlock
+                  text: "{Topic.Progress}% Complete"
+                  size: Small
+                  isSubtle: true
+                - type: Container
+                  style: emphasis
+                  items:
+                    - type: TextBlock
+                      text: "📜 Live Logs:"
+                      weight: Bolder
+                      size: Small
+                    - type: TextBlock
+                      text: "{Topic.Logs}"
+                      wrap: true
+                      size: Small
+                      fontType: Monospace
+                      maxLines: 8
+              actions:
+                - type: Action.Submit
+                  title: "🔄 Refresh Status"
+                  data: "refresh"
+      entity: StringPrebuiltEntity
+
+    - kind: ConditionGroup
+      id: check_status
+      conditions:
+        - id: is_complete
+          condition: =Topic.Status = "completed"
+          actions:
+            # Flatten reasoning for display
+            - kind: SetVariable
+              id: set_reasoning_string
+              variable: Topic.ReasoningText
+              value: =Concat(Topic.Result.reasoning, Char(10) & Char(10)) 
+              # Note: If Concat can't handle array directly, we might rely on 'summary' mostly.
+              # But backend RLMResponse.reasoning_steps is List[str]. 
+              # PowerFx Concat(Table, Expression) or Concat(List, Value & Separator)?
+              # Copilot Studio Text() function or similar might be safer if Concat is tricky.
+              # For now, let's just use the Result object directly in the card or rely on the Result.details if backend provides it.
+              # Actually, user requested the 'Topic.ReasoningString' logic previously.
+              # Let's assume Concat(Topic.Result.reasoning, Value) works or fallback to just binding Summary.
+              # Safer: Just bind the whole object in card if possible, or skip complex PowerFx for now to ensure stability.
+            
+            - kind: SendActivity
+              id: send_final_result
+              activity:
+                attachments:
+                  - contentType: application/vnd.microsoft.card.adaptive
+                    content:
+                      type: AdaptiveCard
+                      version: "1.5"
+                      body:
+                        - type: Container
+                          style: good
+                          items:
+                            - type: TextBlock
+                              text: "✅ Audit Complete"
+                              weight: Bolder
+                              size: Medium
+                              style: heading
+                        - type: TextBlock
+                          text: "**Summary:** {Topic.Result.summary}"
+                          wrap: true
+                        - type: Container
+                          separator: true
+                          items:
+                            - type: TextBlock
+                              text: "💡 Reasoning:"
+                              weight: Bolder
+                        - type: TextBlock
+                          text: "{Topic.ReasoningText}" 
+                          wrap: true
+                          size: Small
+                          isSubtle: true
+
+        - id: is_failed
+          condition: =Topic.Status = "failed"
+          actions:
+            - kind: SendActivity
+              id: send_fail
+              activity: "❌ Audit Failed: {Topic.Message}"
+
+      elseActions:
+        # Loop back
+        - kind: GotoAction
+          id: loop_back
+          actionId: get_status_action
