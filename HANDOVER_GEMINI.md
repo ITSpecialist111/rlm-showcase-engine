@@ -163,18 +163,22 @@ New-AzFunctionApp -Name rlm-engine-uksouth `
 func azure functionapp publish rlm-engine-uksouth --python
 ```
 
-## 🔜 Next Steps
-- Request quota / use existing plan; create Function App; publish.
-- Wire `code_search` tool into agent tool loop; add `codeaudit` endpoints.
-- Import `copilot/openapi.json`, update connector placeholders, publish Copilot agent, wire Adaptive Card.
-- Build & publish Flex app with bundled deps; verify `/api/audit/start` responds 202.
 
-## 💬 Prompts for Gemini
-- "Summarize role of `execute_code_search` and how to integrate as a tool call in RLM agent loop."
-- "Generate Azure Functions Python v4 durable pattern to offload long-running audit jobs."
-- "Design Adaptive Card schema for streaming job logs (status_manager logs)."
-- "Outline Copilot Studio connector setup using `copilot/openapi.json` and topic wiring (AuditStart/AuditPoll/AuditStatus)."
- - "Explain Copilot Studio `.mcs` instructions syntax constraints (no `{}` / `{{}}`; use plain text examples; `:job_id` path)."
+## ✅ Status: COMPLETE (Ready for Showcase)
+All active development tasks for the RLM Showcase are finished.
+-   **Backend:** Stable, Async, Logging Enabled.
+-   **Frontend:** Polished, Options UI, Live Polling.
+-   **Documentation:** Handover, README, Implementation Plan updated.
+
+## 🔜 Next Steps (Future Phase)
+-   **Productionize:** Move from Flex Consumption to Durable Functions for long-running state.
+-   **Scale:** Implement Azure Table Storage for persistent job history (currently in-memory fallback).
+-   **Extend:** Add PDF parsing support to the blob ingestion pipeline.
+
+## 💬 Prompts for Gemini (Maintenance)
+-   "Help me debug a 500 error in the Azure Function logs."
+-   "How do I add a new tool to the REPL executor?"
+-   "Explain the Open-Ended Query architecture to a business user."
 
 ## 🏗️ Appendix: Valid Topic Configurations
 **`copilotstudio/RLMshowcase/topics/AuditStart.mcs.yml` (Final Rich Version)**

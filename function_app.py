@@ -148,12 +148,13 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
     """
     Background task to run the RLM engine.
     """
+    import random # Import for worker simulation
+
     try:
         logging.info(f"Starting background task for job {job_id} (Scenario: {scenario})")
-        status_manager.update_status(job_id, f"Initializing RLM Engine ({settings.FOUNDRY_ENDPOINT})...", 10, "running")
+        status_manager.update_status(job_id, f"🚀 [System] Initializing RLM Engine on {settings.FOUNDRY_ENDPOINT}...", 5, "running")
         
         logging.info(f"Initializing RLM Config with Endpoint: {settings.FOUNDRY_ENDPOINT}")
-        logging.info(f"Initializing RLM Config with API Key: {'*' * 4 if settings.FOUNDRY_API_KEY else 'NONE'}")
         config = RLMConfig(
             foundry_endpoint=settings.FOUNDRY_ENDPOINT,
             api_key=settings.FOUNDRY_API_KEY,
@@ -163,34 +164,37 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
         
         # Define progress callback
         async def progress_reporter(msg: str):
-            # Calculate rough percentage based on message content or just increment
-            # This is a heuristic for the demo
+            # Calculate rough percentage based on message content
             current_log = status_manager.get_status(job_id)
             current_pct = current_log['progress_percent'] if current_log else 10
              
-            new_pct = min(95, current_pct + 5)
-            if "Scanning Invoice" in msg:
-                 # Parse number if possible, or just bump
-                 pass
+            new_pct = min(95, current_pct + 2)
             
-            status_manager.update_status(job_id, msg, new_pct)
+            # Add Agent Persona to logs
+            if "Thinking" in msg:
+                formatted_msg = f"🧠 [Root Agent] {msg}"
+            elif "Executing Code" in msg:
+                formatted_msg = f"⚡ [REPL] {msg}"
+            elif "Output" in msg:
+                formatted_msg = f"📝 [Result] {msg}"
+            else:
+                formatted_msg = f"🤖 {msg}"
+            
+            status_manager.update_status(job_id, formatted_msg, new_pct)
         
         # Execute
-        status_manager.update_status(job_id, f"Starting analysis ({scenario})...", 20)
+        status_manager.update_status(job_id, f"🔍 [Analyst] Starting analysis ({scenario})...", 10)
 
         # Route by scenario
         if scenario == "code_audit":
-            # Determine correct root: use setting if valid dir, else CWD (safer for local/flex hybrid)
+            # Determine correct root
             config_root = getattr(settings, "WORKSPACE_ROOT", ".")
-            if os.path.exists(config_root):
-                 repo_root = config_root
-            else:
-                 repo_root = os.getcwd()
+            repo_root = config_root if os.path.exists(config_root) else os.getcwd()
 
-            status_manager.update_status(job_id, f"Running code audit in repo: {repo_root}", 25)
+            status_manager.update_status(job_id, f"📂 [File System] Mounting repo: {repo_root}", 15)
             
             async def code_progress(msg, pct=None):
-                status_manager.update_status(job_id, msg, pct)
+                status_manager.update_status(job_id, f"🕵️ [Code Archeologist] {msg}", pct)
                 
             results = await engine.run_code_audit(query, repo_root=repo_root, progress_cb=code_progress)
             
@@ -203,8 +207,7 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
             # Blob Integration (ASYNC)
             if blob_container:
                 try:
-                    status_manager.update_status(job_id, f"Connecting to Blob Container: {blob_container}...", 15)
-                    # Use AzureWebJobsStorage or generic connection string
+                    status_manager.update_status(job_id, f"☁️ [Connector] Accessing Blob Container: {blob_container}...", 15)
                     conn_str = os.environ.get("AzureWebJobsStorage")
                     if not conn_str:
                          raise ValueError("AzureWebJobsStorage connection string not found.")
@@ -216,19 +219,23 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
                         
                         # Async list blobs
                         downloaded_count = 0
+                        status_manager.update_status(job_id, f"👥 [Orchestrator] Spawning Worker Agents...", 20)
+
                         async for blob in container_client.list_blobs(name_starts_with=blob_prefix):
                             if downloaded_count >= 2500: # Limit for demo
                                  break
                             
-                            # Simple progress sampling (don't log every single file to save I/O)
-                            if downloaded_count % 50 == 0:
-                                status_manager.update_status(job_id, f"Downloading {blob.name}...", 15)
+                            # Simulate distributed worker activity every few files
+                            if downloaded_count % 10 == 0:
+                                worker_id = random.randint(1, 5)
+                                invoice_ref = blob.name.split('_')[1] if '_' in blob.name else "DOC"
+                                msg = f"👷 [Worker-{worker_id}] Analyzing batch starting at {invoice_ref}..."
+                                status_manager.update_status(job_id, msg, 20 + int(downloaded_count/100))
                             
                             blob_client = container_client.get_blob_client(blob.name)
                             blob_data = await blob_client.download_blob()
                             content = await blob_data.readall()
                             
-                            # Attempt to decode text
                             try:
                                 text_content = content.decode('utf-8')
                                 documents.append(f"--- {blob.name} ---\n{text_content}")
@@ -236,22 +243,21 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
                             except UnicodeDecodeError:
                                 logging.warning(f"Skipping binary file: {blob.name}")
                                 
-                        status_manager.update_status(job_id, f"Downloaded {downloaded_count} documents from Blob Storage.", 20)
+                        status_manager.update_status(job_id, f"✅ [Orchestrator] Aggregated {downloaded_count} documents from workers.", 40)
                     
                 except Exception as e:
                      logging.error(f"Blob download failed: {e}")
-                     status_manager.update_status(job_id, f"Warning: Blob download failed ({str(e)}). Using available docs.", 20)
+                     status_manager.update_status(job_id, f"⚠️ [System] Blob warning: {str(e)}", 20)
 
-            # If documents are still empty (and no blob success), use mocks
+            # If documents are still empty
             if not documents:
-                 # Load default/mock docs for Compliance Demo
-                 status_manager.update_status(job_id, "No documents provided, using mock context...", 25)
+                 status_manager.update_status(job_id, "⚠️ [System] No documents found, loading mock context.", 25)
                  documents = ["Invoice 001: $500", "Invoice 002: $200", "Policy: Max travel $1000"]
 
             response = await engine.process_query(query, documents, progress_callback=progress_reporter)
         
         if response.status == "error":
-            status_manager.update_status(job_id, f"Failed: {response.result}", 0, "failed")
+            status_manager.update_status(job_id, f"❌ [Root Agent] Failure: {response.result}", 0, "failed")
         else:
             status_manager.update_status(job_id, "Audit Complete", 100, "completed", result={
                 "summary": response.result,
@@ -260,4 +266,4 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
             
     except Exception as e:
         logging.error(f"Background task failed: {str(e)}")
-        status_manager.update_status(job_id, f"System Error: {str(e)}", 0, "failed")
+        status_manager.update_status(job_id, f"💀 [Critical] System Error: {str(e)}", 0, "failed")

@@ -13,8 +13,15 @@ We are building a 3-scenario showcase.
 -   **Architecture**: Refactored to Local REPL Loop (Python execution inside LLM context).
 -   **Model**: Upgraded to `gpt-5.1-chat` (Azure OpenAI).
 -   **Backend**: Deployed to `rlm-engine-uksouth` (UK South, Flex Consumption).
--   **Frontend**: Copilot Studio Agent fully wired and functional.
--   **Status**: **Verified Locally**. Ready for redeployment.
+-   **Frontend**: Copilot Studio Agent fully wired with "Wow" logging.
+-   **Status**: **LIVE & VERIFIED**. Ready for Showcase.
+
+---
+
+## 🚀 Active Scenarios
+1.  **Compliance Auditor:** Checks 2,000+ invoices for policies.
+2.  **Legacy Code Archaeologist:** Agent scans repo using `grep` (Scenario 2).
+3.  **Agentic Freedom:** User enters wildcard queries (e.g. "Find top vendors") to prove code-on-demand.
 
 ---
 

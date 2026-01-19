@@ -45,9 +45,19 @@ To support massive datasets (2,000+ files), we refactored the ingestion layer to
 -   Visuals: Real-time streaming logs in Copilot Studio (e.g., *"Downloading Invoice_0042..."*).
 -   Result: Accurate identification of policy violations across the massive dataset.
 
+
 ### 2. The Legacy Code Archaeologist (Ready 🏗️)
 **Goal:** Trace logic across a repo.
 **Status:** `execute_code_search` implemented. Invoke via `scenario="code_audit"` and pass a regex query.
+
+### 3. The Wildcard (Agentic Freedom) 🔓
+**Goal:** Demonstrate that the system is not "on rails".
+**Mechanism:** The user types a custom question into the chat instead of clicking a button.
+**Example Prompts:**
+- *"Who are the top 3 vendors by total spend? Show the calculation."*
+- *"Calculate the average invoice amount and find outliers (2x average)."*
+- *"Are there any invoices submitted on a Sunday?"*
+**Why it works:** The RLM Engine writes ad-hoc Python code to analyze the loaded context in real-time.
 
 ---
 
