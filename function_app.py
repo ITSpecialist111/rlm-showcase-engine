@@ -149,8 +149,7 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
         config = RLMConfig(
             foundry_endpoint=settings.FOUNDRY_ENDPOINT,
             api_key=settings.FOUNDRY_API_KEY,
-            root_agent_deployment=settings.ROOT_AGENT_DEPLOYMENT,
-            sub_agent_deployment=settings.SUB_AGENT_DEPLOYMENT
+            deployment=settings.ROOT_AGENT_DEPLOYMENT
         )
         engine = create_rlm_engine(config)
         
@@ -173,9 +172,20 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
 
         # Route by scenario
         if scenario == "code_audit":
-            repo_root = getattr(settings, "WORKSPACE_ROOT", os.getcwd())
+            # Determine correct root: use setting if valid dir, else CWD (safer for local/flex hybrid)
+            config_root = getattr(settings, "WORKSPACE_ROOT", ".")
+            if os.path.exists(config_root):
+                 repo_root = config_root
+            else:
+                 repo_root = os.getcwd()
+
             status_manager.update_status(job_id, f"Running code audit in repo: {repo_root}", 25)
-            results = await engine.run_code_audit(query, repo_root=repo_root, progress_cb=lambda msg, pct=None: status_manager.update_status(job_id, msg, pct or None))
+            
+            async def code_progress(msg, pct=None):
+                status_manager.update_status(job_id, msg, pct)
+                
+            results = await engine.run_code_audit(query, repo_root=repo_root, progress_cb=code_progress)
+            
             status_manager.update_status(job_id, "Code Audit Complete", 100, "completed", result={
                 "summary": f"Found {len(results)} matches",
                 "matches": results,
@@ -195,7 +205,6 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
         else:
             status_manager.update_status(job_id, "Audit Complete", 100, "completed", result={
                 "summary": response.result,
-                "details": response.sub_agent_results,
                 "reasoning": response.reasoning_steps
             })
             
