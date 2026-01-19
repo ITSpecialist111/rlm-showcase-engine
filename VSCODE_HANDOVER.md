@@ -9,10 +9,12 @@ We are building a 3-scenario showcase.
 2.  **Legacy Code Archaeologist:** (READY) Agent scans repo using `grep` (Scenario 2).
 3.  **Manual Master:** (TODO) Technical manual helper.
 
-**Current State:**
+**Current State (Jan 19 Update):**
+-   **Architecture**: Refactored to Local REPL Loop (Python execution inside LLM context).
+-   **Model**: Upgraded to `gpt-5.1-chat` (Azure OpenAI).
 -   **Backend**: Deployed to `rlm-engine-uksouth` (UK South, Flex Consumption).
 -   **Frontend**: Copilot Studio Agent fully wired and functional.
--   **Status**: **100% Operational**.
+-   **Status**: **Verified Locally**. Ready for redeployment.
 
 ---
 
@@ -36,8 +38,8 @@ func azure functionapp publish rlm-engine-uksouth --python
 ---
 
 ## 🤖 Architecture Recap
--   **Agent-to-Agent Delegation:** Use this phrase to describe the pattern. The Copilot is the interface; Azure Functions is the brain.
--   **RLM Paradigm:** We don't read documents; we *scan* them recursively.
+-   **REPL Pattern:** The Agent writes code to see the data. It doesn't just "Read" it.
+-   **RLM Paradigm:** We don't read documents; we *scan* them recursively using Python loops.
 
 ## ⚠️ Common Pitfalls fixed
 -   **Duplicate Actions:** We deleted `start_audit.mcs.yml` (etc) in favor of the imported `StartAuditJob`.

@@ -4,6 +4,7 @@ import json
 import asyncio
 import os
 from datetime import datetime
+# from azure.storage.blob import BlobServiceClient (Moved to lazy async import)
 
 # Import local modules
 from rlm_engine import create_rlm_engine, RLMConfig
@@ -50,12 +51,19 @@ async def start_audit(req: func.HttpRequest) -> func.HttpResponse:
         req_body = req.get_json()
         query = req_body.get('query')
         scenario = req_body.get('scenario', 'invoice_audit') # 'invoice_audit' or 'code_audit'
-        documents = req_body.get('documents', []) # For now, simple list. Later, blob support.
+        documents = req_body.get('documents', []) # List of strings
+        blob_container = req_body.get('blob_container', 'demo-invoices') # HARDCODED DEFAULT for Demo
+        blob_prefix = req_body.get('blob_prefix', None) # Optional: Filter blobs by prefix
         
         if not query:
             query = "Full policy compliance audit"
             logging.info("No query provided; defaulting to 'Full policy compliance audit'")
 
+        # Heuristic: Auto-detect scenario if not explicitly provided or if query strongly suggests code audit
+        if "code audit" in query.lower() or "class " in query or "def " in query:
+             logging.info(f"Auto-detecting 'code_audit' scenario from query: {query}")
+             scenario = "code_audit"
+        
         # Create Job ID
         job_id = status_manager.create_job()
         
@@ -76,7 +84,7 @@ async def start_audit(req: func.HttpRequest) -> func.HttpResponse:
         # However, the requirement is "Azure returns a Job_ID immediately".
         # We will use the 'Process in background' pattern which works okay for short demos/dev.
         
-        asyncio.create_task(run_audit_task(job_id, query, documents, scenario))
+        asyncio.create_task(run_audit_task(job_id, query, documents, scenario, blob_container, blob_prefix))
 
         return func.HttpResponse(
             json.dumps({
@@ -136,13 +144,13 @@ async def get_status(req: func.HttpRequest) -> func.HttpResponse:
         mimetype="application/json"
     )
 
-async def run_audit_task(job_id: str, query: str, documents: list, scenario: str = "invoice_audit"):
+async def run_audit_task(job_id: str, query: str, documents: list, scenario: str = "invoice_audit", blob_container: str = None, blob_prefix: str = None):
     """
     Background task to run the RLM engine.
     """
     try:
         logging.info(f"Starting background task for job {job_id} (Scenario: {scenario})")
-        status_manager.update_status(job_id, "Initializing RLM Engine...", 10, "running")
+        status_manager.update_status(job_id, f"Initializing RLM Engine ({settings.FOUNDRY_ENDPOINT})...", 10, "running")
         
         logging.info(f"Initializing RLM Config with Endpoint: {settings.FOUNDRY_ENDPOINT}")
         logging.info(f"Initializing RLM Config with API Key: {'*' * 4 if settings.FOUNDRY_API_KEY else 'NONE'}")
@@ -192,7 +200,49 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
             })
             return
         else:
-            # If documents are empty, we might want to throw error or load from blob
+            # Blob Integration (ASYNC)
+            if blob_container:
+                try:
+                    status_manager.update_status(job_id, f"Connecting to Blob Container: {blob_container}...", 15)
+                    # Use AzureWebJobsStorage or generic connection string
+                    conn_str = os.environ.get("AzureWebJobsStorage")
+                    if not conn_str:
+                         raise ValueError("AzureWebJobsStorage connection string not found.")
+                    
+                    # Async Client Context Manager
+                    from azure.storage.blob.aio import BlobServiceClient
+                    async with BlobServiceClient.from_connection_string(conn_str) as blob_service_client:
+                        container_client = blob_service_client.get_container_client(blob_container)
+                        
+                        # Async list blobs
+                        downloaded_count = 0
+                        async for blob in container_client.list_blobs(name_starts_with=blob_prefix):
+                            if downloaded_count >= 2500: # Limit for demo
+                                 break
+                            
+                            # Simple progress sampling (don't log every single file to save I/O)
+                            if downloaded_count % 50 == 0:
+                                status_manager.update_status(job_id, f"Downloading {blob.name}...", 15)
+                            
+                            blob_client = container_client.get_blob_client(blob.name)
+                            blob_data = await blob_client.download_blob()
+                            content = await blob_data.readall()
+                            
+                            # Attempt to decode text
+                            try:
+                                text_content = content.decode('utf-8')
+                                documents.append(f"--- {blob.name} ---\n{text_content}")
+                                downloaded_count += 1
+                            except UnicodeDecodeError:
+                                logging.warning(f"Skipping binary file: {blob.name}")
+                                
+                        status_manager.update_status(job_id, f"Downloaded {downloaded_count} documents from Blob Storage.", 20)
+                    
+                except Exception as e:
+                     logging.error(f"Blob download failed: {e}")
+                     status_manager.update_status(job_id, f"Warning: Blob download failed ({str(e)}). Using available docs.", 20)
+
+            # If documents are still empty (and no blob success), use mocks
             if not documents:
                  # Load default/mock docs for Compliance Demo
                  status_manager.update_status(job_id, "No documents provided, using mock context...", 25)

@@ -1,0 +1,98 @@
+{
+    "type": "AdaptiveCard",
+    "version": "1.5",
+    "body": [
+        {
+            "type": "Container",
+            "style": "emphasis",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "🕵️‍♂️ RLM Audit In Progress",
+                    "weight": "Bolder",
+                    "size": "Medium"
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "Job ID: ${job_id}",
+                    "isSubtle": true,
+                    "size": "Small"
+                }
+            ]
+        },
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "${message}",
+                    "wrap": true,
+                    "weight": "Medium",
+                    "color": "Accent"
+                },
+                {
+                    "type": "ColumnSet",
+                    "columns": [
+                        {
+                            "type": "Column",
+                            "width": "${progress}px",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "https://via.placeholder.com/1x10/0078D4/0078D4.png",
+                                    "height": "10px",
+                                    "horizontalAlignment": "Stretch"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "https://via.placeholder.com/1x10/E0E0E0/E0E0E0.png",
+                                    "height": "10px",
+                                    "horizontalAlignment": "Stretch"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "${progress}% Complete",
+                    "horizontalAlignment": "Right",
+                    "size": "Small"
+                }
+            ]
+        },
+        {
+            "type": "Container",
+            "spacing": "None",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "Live Logs:",
+                    "weight": "Bolder",
+                    "size": "Small"
+                },
+                {
+                    "type": "Container",
+                    "style": "default",
+                    "bleed": true,
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "${logs_text}",
+                            "wrap": true,
+                            "size": "Small",
+                            "fontType": "Monospace",
+                            "maxLines": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

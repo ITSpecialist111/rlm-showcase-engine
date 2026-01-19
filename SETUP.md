@@ -32,22 +32,36 @@ The Recursive Language Model (RLM) Showcase Engine is a production-ready impleme
         pip install -r requirements.txt
         ```
 
-        ### 2. Configuration
+        ### 2. Configuration (Azure Functions Local)
 
-        ```bash
-        # Copy environment template
-        cp .env.example .env
+        Create `local.settings.json` in the root (do not commit this file):
 
-        # Edit .env with your Microsoft Foundry credentials
-        # Required fields:
-        # - FOUNDRY_ENDPOINT: Your Microsoft Foundry API endpoint
-        # - FOUNDRY_API_KEY: Your Microsoft Foundry API key
-        # - AZURE_SUBSCRIPTION_ID: Your subscription ID
-        # - ROOT_AGENT_ENDPOINT: Root agent endpoint
-        # - SUB_AGENT_ENDPOINT: Sub-agent endpoint
+        ```json
+        {
+          "IsEncrypted": false,
+          "Values": {
+            "AzureWebJobsStorage": "", 
+            "FUNCTIONS_WORKER_RUNTIME": "python",
+            "FOUNDRY_ENDPOINT": "https://your-resource.openai.azure.com/",
+            "FOUNDRY_API_KEY": "your-key",
+            "ROOT_AGENT_DEPLOYMENT": "gpt-5.1-chat",
+            "WORKSPACE_ROOT": "."
+          }
+        }
         ```
+        *Note: `AzureWebJobsStorage` is left empty to run without local storage emulator for lightweight testing.*
 
         ### 3. Test the Engine
+
+        **Run the Host:**
+        ```bash
+        func host start -p 7072
+        ```
+
+        **Run the Verification Script:**
+        ```bash
+        python tests/check_repl.py
+        ```
 
         ```python
         import asyncio

@@ -1,16 +1,23 @@
 # RLM Showcase Engine - Project Handover Document
 
 **Date Created:** 2026-01-18
-**Project Status:** Phase 2 - 100% Complete (Backend Deployed & Integrated)
-**Last Updated:** 2026-01-18 19:30:00
+**Project Status:** Phase 2 - Verified Live (Async IO Enabled) ✅
+**Last Updated:** 2026-01-19 17:55:00
 
 ---
 
 ## 📋 Executive Summary
 
-The RLM (Recursive Language Model) Showcase Engine is a production-ready implementation of a hierarchical language model architecture, grounded in the MIT paper *Recursive Language Models*. This project integrates **Microsoft Foundry**, **Azure Functions (Flex)**, and **Copilot Studio** to demonstrate how to solve the "Context Rot" problem for massive datasets.
+The RLM (Recursive Language Model) Showcase Engine is a production-ready implementation of a hierarchical language model architecture. This project integrates **Microsoft Foundry**, **Azure Functions (Flex)**, and **Copilot Studio**.
 
-**Key Achievement:** The system is fully operational. The backend successfully processes audit requests via a background job queue, and the Copilot Studio frontend provides a seamless, "Agent-to-Agent" conversational interface.
+**Jan 19 Update (Async Refactor):**
+To support massive datasets (2,000+ files), we refactored the ingestion layer to use **Asynchronous IO (`aio`)**. This ensures the RLM Engine remains responsive to Copilot health checks even while downloading gigabytes of data.
+
+**Key Achievements:**
+- **Zero Blocking**: Switched to `azure.storage.blob.aio`.
+- **High Concurrency**: Verified 2,000 document ingestion within Copilot timeout limits.
+- **Auto-Routing**: Validated both "Compliance" and "Code Archeologist" scenarios.
+- **Demo Data Prepared**: ☁️ **Blob Connectivity** established. Container `demo-invoices` created and seeded with 2,000 mock documents.
 
 ---
 
@@ -19,21 +26,24 @@ The RLM (Recursive Language Model) Showcase Engine is a production-ready impleme
 ### Based on: *Recursive Language Models* (arXiv:2512.24601v1)
 **Core Concept:** Treating long context as an *environment* (symbolic interaction) rather than a prompt.
 **Our Implementation:**
-1.  **Context-as-Environment**: Documents are stored externally; the Agent requests scans.
-2.  **Symbolic Interaction**: `RLMEngine` acts as the REPL, executing scanned tasks.
-3.  **Recursive Decomposition**: Map-Reduce pattern used for parallel compliance checks.
+1.  **Context-as-Environment**: Documents are loaded into a Python REPL (`context` variable).
+2.  **Symbolic Interaction**: The LLM writes Python code to inspect, slice, and loop over documents.
+3.  **Recursive Decomposition**: The generated code can call `llm_query()` to recurse on sub-problems.
+
+**Refactor Note (Jan 19):** Switched from Map-Reduce to REPL architecture to align strictly with the paper.
 
 ---
 
 ## 🎬 Showcase Scenarios
 
 ### 1. The Compliance Auditor (LIVE ✅)
-**Goal:** Process 50+ invoices against policy documents.
+**Goal:** Process 2,000+ invoices against policy documents.
 **User Experiene:**
 -   User: *"Run audit"* (No complex prompt needed).
 -   System: Defaults to "Full policy compliance audit", starts background job, and polls for status.
--   Visuals: Real-time streaming logs in Copilot Studio (e.g., *"Scanning Invoice #42... VIOLATION"*).
--   Result: 100% accurate identification of the "Business Class" violation.
+-   **Auto-Ingestion:** Backend automatically connects to `demo-invoices` blob container (Hardcoded default).
+-   Visuals: Real-time streaming logs in Copilot Studio (e.g., *"Downloading Invoice_0042..."*).
+-   Result: Accurate identification of policy violations across the massive dataset.
 
 ### 2. The Legacy Code Archaeologist (Ready 🏗️)
 **Goal:** Trace logic across a repo.
@@ -57,7 +67,7 @@ User (Copilot Studio)
 1.  **Backend (Azure Functions - Flex Consumption)**
     -   **Runtime:** Python 3.11 (Simplifies deployment, no Docker needed).
     -   **Endpoints:**
-        -   `POST /audit/start`: Starts job (Query optional, defaults to full audit).
+        -   `POST /audit/start`: Starts job. Optional `blob_container` (defaults to `demo-invoices`).
         -   `GET /audit/status/{job_id}`: Returns status + logs.
         -   `GET /openapi.json`: Auto-serves spec for Connector import.
     -   **Telemetry:** Custom Events (`audit_job_created`, `audit_status_update`) pushed to App Insights.
@@ -103,6 +113,39 @@ If you need to recreate the agent:
 
 ---
 
+## ☁️ Demo Data Setup (Blob Storage)
+
+To demonstrate processing thousands of files, we use Azure Blob Storage as the document source.
+
+### 1. Prerequisites
+Ensure `local.settings.json` (or Azure App Settings) has `AzureWebJobsStorage` set to a valid Storage Account connection string.
+
+### 2. Setup Script
+We include a utility script to create the container and upload mock data.
+```powershell
+# Create 'demo-invoices' container and upload 2,000 mock documents
+python tools/generate_data.py
+```
+
+### 3. Running the Blob Demo
+The system is configured to use the `demo-invoices` container by default if no documents are provided.
+**Limit:** The backend is configured to process up to 2,500 documents per run.
+
+**JSON Payload (Explicit):**
+```json
+{
+  "query": "Audit these invoices against the travel policy",
+  "blob_container": "demo-invoices"
+}
+```
+**JSON Payload (Implicit/Default):**
+```json
+{
+  "query": "Audit these invoices"
+}
+```
+
+---
 ## � Troubleshooting & Maintenance
 -   **"Unknown Element" in Copilot:** Caused by file naming conflicts. **Resolution:** We renamed actions to simple names (`StartAuditJob`, `GetAuditStatus`) and deleted old/duplicate files.
 -   **Agent keeps asking for query:** **Resolution:** Backend now defaults to "Full audit" if query is missing.

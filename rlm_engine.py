@@ -218,15 +218,24 @@ class RLMEngine:
         history = []
         
         # Define System Prompt
+        doc_count = len(documents) if documents else 0
+        if doc_count > 0:
+            preview = documents[0][:200] + "..." if len(documents[0]) > 200 else documents[0]
+            context_status = f"Context Status: {doc_count} documents loaded in `context` variable.\nPreview of doc[0]: {preview}"
+        else:
+            context_status = "Context Status: 0 documents loaded (Empty)."
+        
         system_prompt = f"""
 You are a Recursive Language Model (RLM).
 Your goal is to answer the user's query by interacting with the `context` variable in your Python environment.
+{context_status}
 
-Can `context` be used to answer?
-1. Write Python code to slice it, inspect it, e.g. `print(context[0][:100])`
-2. If you need to search files in the repository (Code Archaeologist), use `code_search(pattern, glob)`.
-   Example: `print(code_search("Run audit", "**/*.py"))`
-3. iterate until you have the answer.
+INSTRUCTIONS:
+1. The data you need IS in the `context` variable.
+2. You must write Python code to read it.
+3. Example: `print(context[0])` or `for doc in context: print(doc)`
+4. Iterate until you find the information.
+5. Do NOT say data is missing without printing `context` first.
 
 Variables available:
 - `context`: List of strings (documents).

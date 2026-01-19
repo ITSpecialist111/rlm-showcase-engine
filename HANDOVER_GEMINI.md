@@ -1,29 +1,29 @@
 # RLM Showcase Engine — Gemini Handover
-**Date:** 2026-01-18
+**Date:** 2026-01-19
 
 ## 🧠 Context
 - **Goal:** Demonstrate Recursive Language Models (RLM) with a Compliance Auditor (50+ invoices, policy checks).
-- **Stack:** Python, Functions, Microsoft Foundry (GPT-5.1 agents), Copilot Studio, async orchestration.
-- **Key idea:** Treat long context as environment; agents request scans instead of stuffing prompts.
+- **Stack:** Python 3.11+, Azure Functions V2, Microsoft Foundry (GPT-5.1 agents), Copilot Studio.
+- **Architecture:** **REPL-based** (Paper specific). Context is an environment; agents write Python code.
+- **Model:** `gpt-5.1-chat` (Requires `openai>=1.57.0`, `max_completion_tokens`, NO `temperature` param).
 
 ## 🗂️ Key Files
-- `rlm_engine.py` — Hierarchical agents + `execute_code_search` helper (regex repo scan).
-- `function_app.py` — HTTP triggers: `audit/start`, `audit/status/{job_id}`; async background job.
-- `status_manager.py` — In-memory job tracking (logs, progress, result).
-- `config.py` — Settings with defaults for local/tests (`FOUNDRY_ENDPOINT=https://example.com`, `FOUNDRY_API_KEY=dummy`).
-- `mock_data/` — 50 invoices (Invoice #42 has violation), policy doc.
-- `tests/` — `test_code_archeologist.py`.
-- `host.json`, `local.settings.json` — Added for Functions runtime.
+- `rlm_engine.py` — **Refactored**: Uses `REPLExecutor`. `temperature` param removed to fix O-series compatibility.
+- `function_app.py` — HTTP triggers: `audit/start`, `audit/status/{job_id}`.
+- `local.settings.json` — `ROOT_AGENT_DEPLOYMENT="gpt-5.1-chat"`. `AzureWebJobsStorage` must be empty for local testing without storage emulator.
+- `tests/check_repl.py` — **Primary Test**: End-to-end verification script against local host (port 7072).
 
-## 🧪 Tests
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python -m pytest tests/test_code_archeologist.py -q
-python -m pytest -q
+## 🧪 Tests (Validated Jan 19)
+1. **Start Host:**
+```powershell
+# Port 7072 to avoid conflicts
+func host start -p 7072
 ```
-**Results (2026-01-18):** All green (one pydantic v2 deprecation warning).
+2. **Run Check:**
+```powershell
+python tests/check_repl.py
+```
+**Results:** Scenario 1 (Compliance) and Scenario 2 (Code Audit) verified locally.
 
 ## 🔄 Updates (Additions)
 - `rlm_engine.py`: `run_code_audit`, `tool_execution` wiring for `code_search`.
@@ -74,26 +74,21 @@ python -m pytest -q
   - Call the above actions; store `Topic.job_id` on start; reuse in polls.
   - Optional: bind `adaptive_cards/polling_status.json` to show `title`, `status`, `progress`, `logs_text`.
 
-### Flex Consumption Deployment (Python 3.13)
-- Remote build **unsupported**; bundle Linux deps via Docker.
-- Build inside Functions container:
+### Flex Consumption Deployment (Python 3.11)
+- **Runtime:** Python 3.11 (Recommended for stability).
+- **Remote build:** Supported natively.
+- **Publish:**
   ```powershell
-  docker run --rm -v C:\Users\graham\Documents\GitHub\rlm-showcase-engine:/app -w /app \
-    mcr.microsoft.com/azure-functions/python:4-python3.13 bash -c "
-      apt-get update && apt-get install -y build-essential rustc cargo && \
-      /opt/python/3.13.11/bin/pip install maturin==1.3.3 && \
-      PIP_NO_BUILD_ISOLATION=1 /opt/python/3.13.11/bin/pip install pydantic-core==2.14.1 --no-binary pydantic-core -v && \
-      PIP_NO_BUILD_ISOLATION=1 /opt/python/3.13.11/bin/pip install -r requirements.txt -t .python_packages/lib/site-packages
-    "
+  func azure functionapp publish rlm-engine-uksouth --python --build-remote
   ```
-- Publish: `func azure functionapp publish rlm-engine-uksouth --python --no-build --no-app-settings`
-- App settings: `FOUNDRY_ENDPOINT`, `FOUNDRY_API_KEY`, `WORKSPACE_ROOT=/home/site/wwwroot` (no SCM_DO_BUILD_*).
-- Troubleshoot: `/admin/functions` 500 ⇒ deps missing. SCM logstream not available on Flex.
+- **App settings:** `FOUNDRY_ENDPOINT`, `FOUNDRY_API_KEY`, `WORKSPACE_ROOT=/home/site/wwwroot`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true`.
+- **Note:** Ensure `DEPLOYMENT_STORAGE_CONNECTION_STRING` is correct in Azure Portal (use `fetch-app-settings` to verify).
 
 ## 🚧 Deployment Status
-- **Deployed:** `rlm-engine-uksouth` (Flex Consumption **Python 3.11**) with bundled deps.
-- **Storage:** `rgrlmshowcaseuksoutaebe` / `app-package-rlm-engine-uksouth-c0520e5`
+- **Deployed:** `rlm-engine-uksouth` (Flex Consumption **Python 3.11**).
+- **Storage:** Account `rgrlmshowcaseuksout80ac`.
 - **Functions:** `POST /api/audit/start`, `GET /api/audit/status/{job_id}`
+- **Known Issue:** Job status is currently stored in-memory. On Flex Consumption, subsequent requests may hit different instances yielding 404s. Production requires Azure Table Storage.
 - **Notes:** `/admin/host/status` may 404 during warmup; SCM logstream not exposed on Flex.
 
 ## 🧩 Foundry Project

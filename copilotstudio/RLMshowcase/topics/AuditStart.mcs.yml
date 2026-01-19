@@ -1,0 +1,153 @@
+kind: AdaptiveDialog
+beginDialog:
+  kind: OnRecognizedIntent
+  id: main
+  intent:
+    displayName: Start Audit
+    triggerQueries:
+      - Start Audit
+      - Run Audit
+      - Audit my invoices
+
+  actions:
+    - kind: Question
+      id: question_query
+      alwaysPrompt: false
+      variable: init:Topic.Query
+      prompt: "What should I audit for?"
+      entity: StringPrebuiltEntity
+
+    - kind: InvokeConnectorTaskAction
+      id: start_audit_action
+      connectionReference: copilots_header_54b8d.shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91.645ed375a27b4386ae1fde046445e3ff
+      actionId: StartAuditJob
+      inputs:
+        query: =Topic.Query
+        # blob_container defaults to demo-invoices in backend if omitted
+
+      outputs:
+        job_id: Topic.JobId
+        message: Topic.StartMessage
+
+    - kind: SendActivity
+      id: send_start_msg
+      activity: "Audit Started! Job ID: {Topic.JobId}"
+
+    - kind: SetVariable
+      id: set_status
+      variable: Topic.Status
+      value: "started"
+
+    # --- POLLING LOOP START ---
+    - kind: InvokeConnectorTaskAction
+      id: get_status_action
+      connectionReference: copilots_header_54b8d.shared_rlm-20functions-5fe568e6face4689c5-5f2b2bf76d00dc3d91.645ed375a27b4386ae1fde046445e3ff
+      actionId: GetAuditStatus
+      inputs:
+        job_id: =Topic.JobId
+      outputs:
+        status: Topic.Status
+        progress_percent: Topic.Progress
+        logs_text: Topic.Logs
+        message: Topic.Message
+        result: Topic.Result
+
+    - kind: SendActivity
+      id: send_adaptive_card
+      activity:
+        attachments:
+          - contentType: application/vnd.microsoft.card.adaptive
+            content:
+              type: AdaptiveCard
+              version: "1.5"
+              body:
+                - type: Container
+                  style: emphasis
+                  items:
+                    - type: TextBlock
+                      text: "🕵️‍♂️ RLM Audit In Progress"
+                      weight: Bolder
+                      size: Medium
+                    - type: TextBlock
+                      text: "Job ID: {Topic.JobId}"
+                      isSubtle: true
+                      size: Small
+
+                - type: Container
+                  items:
+                    - type: TextBlock
+                      text: "{Topic.Message}"
+                      wrap: true
+                      weight: Medium
+                      color: Accent
+
+                    - type: ColumnSet
+                      columns:
+                        - type: Column
+                          width: "{Topic.Progress}"
+                          items:
+                            - type: Image
+                              url: "https://via.placeholder.com/1x10/0078D4/0078D4.png"
+                              height: "10px"
+                              horizontalAlignment: Stretch
+                        - type: Column
+                          width: "{100 - Topic.Progress}"
+                          items:
+                            - type: Image
+                              url: "https://via.placeholder.com/1x10/E0E0E0/E0E0E0.png"
+                              height: "10px"
+                              horizontalAlignment: Stretch
+                              
+                    - type: TextBlock
+                      text: "{Topic.Progress}% Complete"
+                      horizontalAlignment: Right
+                      size: Small
+
+                - type: Container
+                  spacing: None
+                  items:
+                    - type: TextBlock
+                      text: "Live Logs:"
+                      weight: Bolder
+                      size: Small
+                    - type: Container
+                      style: default
+                      bleed: true
+                      items:
+                        - type: TextBlock
+                          text: "{Topic.Logs}"
+                          wrap: true
+                          size: Small
+                          fontType: Monospace
+                          maxLines: 10
+                          
+    - kind: Delay
+      id: polling_delay
+      duration: 2000
+
+    - kind: ConditionGroup
+      id: check_status
+      conditions:
+        - id: is_complete
+          condition: =Topic.Status = "completed"
+          actions:
+            - kind: SendActivity
+              id: send_final_result
+              activity: |
+                # Audit Complete ✅
+                **Summary:** {Topic.Result.summary}
+                
+                **Details:**
+                {Topic.Result.details}
+
+        - id: is_failed
+          condition: =Topic.Status = "failed"
+          actions:
+            - kind: SendActivity
+              id: send_fail
+              activity: "Audit Failed: {Topic.Message}"
+
+      elseActions:
+        - kind: GotoAction
+          id: loop_back
+          actionId: get_status_action

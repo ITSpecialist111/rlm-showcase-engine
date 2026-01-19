@@ -10,6 +10,12 @@ import os
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 
+try:
+    from azure.data.tables import TableClient
+    from azure.core.exceptions import ResourceExistsError, HttpResponseError
+except ImportError:
+    TableClient = None
+
 # In a real Azure Function app, we might use azure.data.tables
 # For this showcase portable implementation, we can use a class that *can* use Tables
 # but defaults to in-memory or file-based for local simplicity if connection string is missing.
@@ -34,11 +40,23 @@ except ImportError:  # pragma: no cover
 
 
 class StatusManager:
-    def __init__(self, connection_string: Optional[str] = None, table_name: str = "rlm_audit_status"):
+    def __init__(self, connection_string: Optional[str] = None, table_name: str = "rlmAuditStatus"):
         self.connection_string = connection_string
         self.table_name = table_name
         self._local_storage: Dict[str, JobStatus] = {}
-        # TODO: Initialize Azure Table Client if connection_string is provided
+        self.table_client = None
+
+        if self.connection_string and TableClient:
+            try:
+                self.table_client = TableClient.from_connection_string(conn_str=self.connection_string, table_name=self.table_name)
+                try:
+                    self.table_client.create_table()
+                except ResourceExistsError:
+                    pass
+                logger.info(f"StatusManager connected to Azure Table: {self.table_name}")
+            except Exception as e:
+                logger.error(f"Failed to initialize Azure Table Client: {e}")
+                self.table_client = None
 
         # Application Insights telemetry (optional)
         self._telemetry_client = self._init_telemetry_client()
@@ -94,12 +112,52 @@ class StatusManager:
         return None
 
     def _get_job(self, job_id: str) -> Optional[JobStatus]:
-        # TODO: Implement Azure Table Storage retrieval
-        return self._local_storage.get(job_id)
+        if self.table_client:
+            try:
+                entity = self.table_client.get_entity(partition_key="audit_job", row_key=job_id)
+                # Deserialize complex fields
+                logs = json.loads(entity.get("logs", "[]"))
+                result_json = entity.get("result", None)
+                result = json.loads(result_json) if result_json else None
+                
+                return JobStatus(
+                    job_id=entity["RowKey"],
+                    status=entity["status"],
+                    created_at=entity["created_at"],
+                    updated_at=entity["updated_at"],
+                    progress_percent=int(entity["progress_percent"]),
+                    message=entity["message"],
+                    logs=logs,
+                    result=result
+                )
+            except Exception as e:
+                # logger.debug(f"Job {job_id} not found in table: {e}")
+                return None
+        else:
+            return self._local_storage.get(job_id)
 
     def _save_job(self, job: JobStatus):
-        # TODO: Implement Azure Table Storage upset
-        self._local_storage[job.job_id] = job
+        if self.table_client:
+            try:
+                # Serialize for Table Storage
+                entity = {
+                    "PartitionKey": "audit_job",
+                    "RowKey": job.job_id,
+                    "status": job.status,
+                    "created_at": job.created_at,
+                    "updated_at": job.updated_at,
+                    "progress_percent": job.progress_percent,
+                    "message": job.message,
+                    "logs": json.dumps(job.logs),
+                    "result": json.dumps(job.result) if job.result else None
+                }
+                self.table_client.upsert_entity(entity=entity)
+            except Exception as e:
+                logger.error(f"Failed to save job {job.job_id} to table: {e}")
+                # Fallback to local
+                self._local_storage[job.job_id] = job
+        else:
+            self._local_storage[job.job_id] = job
 
     # --- Telemetry helpers ---
     def _init_telemetry_client(self) -> Optional["TelemetryClient"]:
@@ -135,6 +193,7 @@ class StatusManager:
         except Exception:
             logger.debug("Telemetry tracking failed", exc_info=True)
 
-# Global instance
-# We will initialize this properly in the function app startup
-status_manager = StatusManager()
+# Global instance initialization
+# Check DEPLOYMENT_STORAGE_CONNECTION_STRING first (preferred for app data), then AzureWebJobsStorage
+conn_str = os.getenv("DEPLOYMENT_STORAGE_CONNECTION_STRING") or os.getenv("AzureWebJobsStorage")
+status_manager = StatusManager(connection_string=conn_str)
