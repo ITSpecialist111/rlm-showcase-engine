@@ -35,12 +35,8 @@ When you ask *"Audit these 5,000 invoices"*, the system does not just read them.
 The system follows a distributed **Client-Server-Agent** pattern:
 
 ```mermaid
-graph TD
-    User[Copilot Studio Interface] -->|HTTP POST| AzureFunc[Azure Function (Python v2)]
-    AzureFunc -->|Async IO| BlobStore[Azure Blob Storage]
-    AzureFunc -->|Initialize| RLM[RLM Engine Class]
-    RLM -->|Foundry SDK| GPT[GPT-4o (Model)]
-    RLM <-->|Exec| REPL[Python Sandbox]
+<img width="2887" height="2268" alt="image" src="https://github.com/user-attachments/assets/c3a7bf76-5edf-4f3a-8fdb-ff83b2093cc6" />
+
 ```
 
 ### The "Inner Workings"
