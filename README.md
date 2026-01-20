@@ -100,4 +100,16 @@ func azure functionapp publish rlm-engine-uksouth --python
 1.  Open Copilot Studio Test Pane.
 2.  Say **"Start Audit"**.
 3.  Select **"Invoice Compliance"**.
-4.  Watch the Agentic Logs stream in real-time.
+
+## 🔍 Showcase Transparency (Simplifications)
+
+To keep this demo lightweight, cost-effective, and robust for presentations, several components are **simulated**:
+
+1.  **Simulated Worker Cluster:**
+    *   The "Worker Agents" in the logs are simulated threads running within a single Azure Function instance. This mimics a distributed system's behavior without the cost of a real cluster.
+2.  **Mock Recursion:**
+    *   The `llm_query` function (RLM recursion) logs the intent to spawn a sub-agent but returns a placeholder in this version to avoid complex async synchronization issues.
+3.  **Regex Fast-Path:**
+    *   The "Code Audit" scenario uses a deterministic regex search (`execute_code_search`) ensuring 100% demo reliability, rather than relying on the LLM to write the regex every time.
+
+**Production Path:** Move to Azure Durable Functions (Fan-Out) and implement `nest_asyncio` for true recursion.

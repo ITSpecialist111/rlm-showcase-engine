@@ -167,12 +167,21 @@ The system is configured to use the `demo-invoices` container by default if no d
 
 ---
 ## 🔧 Troubleshooting & Maintenance
--   **Static/Hardcoded Messages:** If Copilot always says "468 invoices...", check the `StartAudit` topic. It likely has hardcoded text instead of the `{Topic.summary}` variable.
--   **Agent keeps asking for query:** **Resolution:** Backend now defaults to "Full audit" if query is missing.
--   **"Plan" output instead of "Result":** If the agent describes code ("Running this will...") instead of showing the number, the System Prompt needs tightening to force `print()` execution. (Fixed in Jan 20 update).
--   **Deployment fails:** Ensure you are on Python 3.11 and using `func azure functionapp publish ... --python`.
+## 🔮 Future Roadmap (Production Readiness)
 
-## 🧪 Quick Test
-1.  **Open Copilot Test Pane.**
-2.  **Say:** "Start Audit".
-3.  **Expect:** "Audit Started! Job ID: ..." -> "Status: running (10%)" -> ... -> "Audit Complete!".
+The following architectural changes are required to move from "Showcase" to "Enterprise Production":
+
+### 1. True Distributed Workers
+*   **Today's Approach:** We simulate workers using a `random.randint(1,5)` loop in `function_app.py`.
+    *   *Reason:* Keeps the demo cheap (single Function instance) and simple (no complex queue configurations).
+*   **Production Plan:** Replace the loop with **Azure Durable Functions (Fan-Out/Fan-In pattern)**. The Orchestrator should dispatch `ActivityFunctions` to separate compute instances for massive parallel throughput.
+
+### 2. True Recursive Reasoning
+*   **Today's Approach:** The `llm_query()` function returns a placeholder log message.
+    *   *Reason:* Python `exec()` is synchronous, making it unstable to `await` async sub-calls without complex patching (`nest_asyncio`) which introduces key fragility in a demo.
+*   **Production Plan:** Implement **`nest_asyncio`** or a dedicated sub-process executor to allow the RLM to actually spawn fully functional child agents that return computed results to the parent.
+
+### 3. Intelligent Code Audit
+*   **Today's Approach:** "Code Audit" queries use a Regex "Fast Path" (`execute_code_search`).
+    *   *Reason:* Ensures the demo *always* works 100% of the time for standard queries, masking LLM non-determinism during presentations.
+*   **Production Plan:** Remove the fast path. Force all queries through the **Reasoning Loop** so the agent intelligently decides *how* to search based on the user's intent, rather than blindly grepping.
