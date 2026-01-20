@@ -29,18 +29,15 @@ When you ask *"Audit these 5,000 invoices"*, the system does not just read them.
 
 ---
 
+
 ## ⚙️ Technical Deep Dive
 
 ### Architecture
-The system follows a distributed **Client-Server-Agent** pattern:
+The system follows a distributed **Client‑Server‑Agent** pattern:
 
-```mermaid
-graph TD
-    User[Copilot Studio Interface] -->|HTTP POST| AzureFunc[Azure Function (Python v2)]
-    AzureFunc -->|Async IO| BlobStore[Azure Blob Storage]
-    AzureFunc -->|Initialize| RLM[RLM Engine Class]
-    RLM -->|Foundry SDK| GPT[GPT-4o (Model)]
-    RLM <-->|Exec| REPL[Python Sandbox]
+![Architecture Diagram](https://github.com/ITSpecialist111/rlm-showcase-engine/blob/main/Mermaid-preview.png)
+
+
 ```
 
 ### The "Inner Workings"
