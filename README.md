@@ -35,7 +35,7 @@ When you ask *"Audit these 5,000 invoices"*, the system does not just read them.
 The system follows a distributed **Client-Server-Agent** pattern:
 
 ```mermaid
-<img width="2887" height="2268" alt="image" src="https://github.com/user-attachments/assets/c3a7bf76-5edf-4f3a-8fdb-ff83b2093cc6" />
+<img width="2887" height="2268" alt="image" src="[https://github.com/user-attachments/assets/c3a7bf76-5edf-4f3a-8fdb-ff83b2093cc6](https://github.com/ITSpecialist111/rlm-showcase-engine/blob/main/Mermaid-preview.png)" />
 
 ```
 
