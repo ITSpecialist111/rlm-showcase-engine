@@ -10,6 +10,11 @@
 
 The RLM (Recursive Language Model) Showcase Engine is a production-ready implementation of a hierarchical language model architecture. This project integrates **Microsoft Foundry**, **Azure Functions (Flex)**, and **Copilot Studio**.
 
+**Jan 20 Update (Fixes):**
+- **Smart Routing**: "Ask Anything" vs "Data Analysis" logic refined.
+- **Dynamic Response**: Copilot now displays the actual backend result text.
+- **Deployment Hardening**: `.funcignore` updated to exclude local environments (reducing upload from 128MB to <1MB) and `rlm_engine.py` syntax errors resolved.
+
 **Jan 19 Update (Async Refactor):**
 To support massive datasets (2,000+ files), we refactored the ingestion layer to use **Asynchronous IO (`aio`)**. This ensures the RLM Engine remains responsive to Copilot health checks even while downloading gigabytes of data.
 
@@ -74,8 +79,10 @@ User (Copilot Studio)
        │ (Smart Routing: Invoice vs Code vs General)
 [RLM Engine (Python)] ──────────────────────┘
        ↓ (Foundry SDK)
-[Root Agent] ──> [Sub-Agents] (Parallel Execution)
+[Root Agent] ──> [Sub-Agents] (Parallel Execution via Foundry)
 ```
+
+**Architecture Note:** To simulate a high-scale distributed cluster within a single Function App demo instance, the backend acts as a "Virtual Cluster". It spawns "Simulated Workers" (Log threads) that process batches of files concurrently using `asyncio`, creating the appearance of multi-server activity in the logs. Physically, this maps to **2 Foundry Agents** (Root + Analysis), not 5+ servers.
 
 ### Components
 1.  **Backend (Azure Functions - Flex Consumption)**

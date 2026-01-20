@@ -48,6 +48,7 @@ The system follows a distributed **Client‑Server‑Agent** pattern:
 *   **Process:**
     *   Receives a `POST /audit/start` request.
     *   Uses `asyncio` and `azure-storage-blob` to parallel-stream documents into memory.
+    *   **Simulated Distribution:** To demonstrate a scaled architecture without the cost of a full cluster, the code randomly assigns "Worker IDs" (1-5) to file batches. These "Simulated Workers" run concurrently within the single Function App instance, mimicking the logs of a distributed system.
     *   **Agentic Logging:** Emits real-time events (`👥 Spawning Worker Agents...`) to the Status Manager, which connects to the Copilot Studio UI.
 
 #### 2. The RLM Engine (`rlm_engine.py`)
