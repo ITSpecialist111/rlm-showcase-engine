@@ -66,5 +66,14 @@ def run_tests():
         job_id = resp.json().get("job_id")
         poll_job(job_id)
 
+    # 4. Trigger General Chat (NEW)
+    print("\n--- Triggering General Chat ---")
+    payload_chat = {"query": "Hello, who are you? Smoke Test"}
+    resp = check_endpoint("Start General Chat", "POST", START_URL, payload_chat, expected_code=202)
+    if resp:
+        job_id = resp.json().get("job_id")
+        poll_job(job_id)
+
+
 if __name__ == "__main__":
     run_tests()

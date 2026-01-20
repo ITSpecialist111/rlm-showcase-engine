@@ -53,11 +53,14 @@ To support massive datasets (2,000+ files), we refactored the ingestion layer to
 ### 3. The Wildcard (Agentic Freedom) 🔓
 **Goal:** Demonstrate that the system is not "on rails".
 **Mechanism:** The user types a custom question into the chat instead of clicking a button.
+**Smart Routing:**
+-   **General Chat ("Ask Anything"):** Questions like "Who are you?" or "Is the world flat?" are answered instantly using the LLM's general knowledge (No data load).
+-   **Data Analysis:** Questions about "cost", "invoices", "compliance" trigger the **Invoice Audit** scenario, loading the document set for analysis.
+
 **Example Prompts:**
-- *"Who are the top 3 vendors by total spend? Show the calculation."*
-- *"Calculate the average invoice amount and find outliers (2x average)."*
-- *"Are there any invoices submitted on a Sunday?"*
-**Why it works:** The RLM Engine writes ad-hoc Python code to analyze the loaded context in real-time.
+- *"Who are the top 3 vendors by total spend? Show the calculation."* (Data Analysis)
+- *"Calculate the average invoice amount and find outliers."* (Data Analysis)
+- *"What is a recursive language model?"* (General Chat)
 
 ---
 
@@ -68,6 +71,7 @@ User (Copilot Studio)
        ↓ (HTTP POST /audit/start)
 [Azure Function: rlm-engine-uksouth] <───> [Status Manager]
        ↓ (Async Background Task)            ^
+       │ (Smart Routing: Invoice vs Code vs General)
 [RLM Engine (Python)] ──────────────────────┘
        ↓ (Foundry SDK)
 [Root Agent] ──> [Sub-Agents] (Parallel Execution)
@@ -111,15 +115,14 @@ App Settings in Azure Portal:
 If you need to recreate the agent:
 1.  **Import Connector:** URL -> `https://rlm-engine-uksouth.azurewebsites.net/api/openapi.json`.
 2.  **Auth:** API Key (Function Key/`x-functions-key`).
-3.  **Topic "Audit Start"**:
+3.  **Topic "StartAudit"**:
     -   Trigger: "Run audit".
     -   Action: `StartAuditJob` (Query defaults to "Full audit" if empty).
     -   Set Variable: `Global.JobId`.
-    -   Redirect: `AuditPoll`.
-4.  **Topic "Audit Poll"**:
-    -   Action: `GetAuditStatus` (Input: `Global.JobId`).
-    -   Message: Status + Logs.
-    -   Condition: If not complete, Loop (Redirect to Self).
+    -   Redirect: `AuditPoll` (or loop logic).
+4.  **Displaying Results**:
+    -   Unlike standard topics, **use `{Topic.summary}`** to display the final text response from the RLM engine.
+    -   Do **not** use hardcoded success messages.
 
 ---
 
@@ -156,9 +159,10 @@ The system is configured to use the `demo-invoices` container by default if no d
 ```
 
 ---
-## � Troubleshooting & Maintenance
--   **"Unknown Element" in Copilot:** Caused by file naming conflicts. **Resolution:** We renamed actions to simple names (`StartAuditJob`, `GetAuditStatus`) and deleted old/duplicate files.
+## 🔧 Troubleshooting & Maintenance
+-   **Static/Hardcoded Messages:** If Copilot always says "468 invoices...", check the `StartAudit` topic. It likely has hardcoded text instead of the `{Topic.summary}` variable.
 -   **Agent keeps asking for query:** **Resolution:** Backend now defaults to "Full audit" if query is missing.
+-   **"Plan" output instead of "Result":** If the agent describes code ("Running this will...") instead of showing the number, the System Prompt needs tightening to force `print()` execution. (Fixed in Jan 20 update).
 -   **Deployment fails:** Ensure you are on Python 3.11 and using `func azure functionapp publish ... --python`.
 
 ## 🧪 Quick Test

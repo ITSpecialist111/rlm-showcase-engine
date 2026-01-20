@@ -1,1 +1,15 @@
+.git
+.vscode
 .venv
+.venv311
+__pycache__
+local.settings.json
+tests
+tools
+*.md
+.pytest_cache
+*.zip
+*.pdf
+copilotstudio
+mock_data
+FunctionAppbackup.py

@@ -58,11 +58,31 @@ async def start_audit(req: func.HttpRequest) -> func.HttpResponse:
         if not query:
             query = "Full policy compliance audit"
             logging.info("No query provided; defaulting to 'Full policy compliance audit'")
-
-        # Heuristic: Auto-detect scenario if not explicitly provided or if query strongly suggests code audit
+            scenario = "invoice_audit" # Default for empty click
+        
+        # Heuristic: Auto-detect scenario if not explicitly provided
+        # 1. Code Audit
         if "code audit" in query.lower() or "class " in query or "def " in query:
              logging.info(f"Auto-detecting 'code_audit' scenario from query: {query}")
              scenario = "code_audit"
+        
+        # 2. Invoice Audit (Explicit keywords)
+        # Expanded keywords to catch analytical "Ask anything about data" questions
+        elif any(k in query.lower() for k in ["invoice", "audit", "compliance", "policy", "expense", "spend", "cost", "total", "sum", "average", "count", "how many", "files", "data", "list"]):
+             if scenario == "invoice_audit": # Keep default if already set
+                 pass
+             else:
+                 logging.info(f"Auto-detecting 'invoice_audit' scenario from query: {query}")
+                 scenario = "invoice_audit"
+        
+        # 3. General Chat (Fallback for everything else)
+        elif scenario == "invoice_audit": 
+             # If scenario was default "invoice_audit" but query didn't match keywords,
+             # AND query is not the default "Full policy...", switch to general chat.
+             if query != "Full policy compliance audit":
+                 logging.info(f"Auto-detecting 'general_chat' scenario from query: {query}")
+                 scenario = "general_chat"
+
         
         # Create Job ID
         job_id = status_manager.create_job()
@@ -186,6 +206,7 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
         status_manager.update_status(job_id, f"🔍 [Analyst] Starting analysis ({scenario})...", 10)
 
         # Route by scenario
+        # Route by scenario
         if scenario == "code_audit":
             # Determine correct root
             config_root = getattr(settings, "WORKSPACE_ROOT", ".")
@@ -203,8 +224,14 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
                 "matches": results,
             })
             return
+        
+        elif scenario == "general_chat":
+             status_manager.update_status(job_id, f"💭 [General Chat] Processing request: {query[:30]}...", 15)
+             # No docs needed for general chat
+             documents = []
+             
         else:
-            # Blob Integration (ASYNC)
+            # Invoice Audit (Default): Blob Integration (ASYNC)
             if blob_container:
                 try:
                     status_manager.update_status(job_id, f"☁️ [Connector] Accessing Blob Container: {blob_container}...", 15)
@@ -249,12 +276,13 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
                      logging.error(f"Blob download failed: {e}")
                      status_manager.update_status(job_id, f"⚠️ [System] Blob warning: {str(e)}", 20)
 
-            # If documents are still empty
-            if not documents:
+            # If documents are still empty AND we are in Invoice Audit mode (and failed to get blobs or none existed)
+            if not documents and scenario == "invoice_audit":
                  status_manager.update_status(job_id, "⚠️ [System] No documents found, loading mock context.", 25)
                  documents = ["Invoice 001: $500", "Invoice 002: $200", "Policy: Max travel $1000"]
 
-            response = await engine.process_query(query, documents, progress_callback=progress_reporter)
+        # Unified Processing Step (for both General Chat and Invoice Audit)
+        response = await engine.process_query(query, documents, progress_callback=progress_reporter)
         
         if response.status == "error":
             status_manager.update_status(job_id, f"❌ [Root Agent] Failure: {response.result}", 0, "failed")

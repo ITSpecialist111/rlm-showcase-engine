@@ -221,21 +221,29 @@ class RLMEngine:
         doc_count = len(documents) if documents else 0
         if doc_count > 0:
             preview = documents[0][:200] + "..." if len(documents[0]) > 200 else documents[0]
-            context_status = f"Context Status: {doc_count} documents loaded in `context` variable.\nPreview of doc[0]: {preview}"
+            context_status = f"Context Status: {doc_count} documents loaded in `context` variable.\nPreview of doc[0]: {preview}\n\nINSTRUCTIONS:\n1. The data you need IS in the `context` variable.\n2. You must write Python code to read it."
         else:
-            context_status = "Context Status: 0 documents loaded (Empty)."
+            context_status = "Context Status: 0 documents loaded (General Chat Mode).\n\nINSTRUCTIONS:\n1. Answer from your general knowledge.\n2. You can still use Python for calculation or logic if needed, but `context` is empty."
         
         system_prompt = f"""
 You are a Recursive Language Model (RLM).
 Your goal is to answer the user's query by interacting with the `context` variable in your Python environment.
 {context_status}
 
-INSTRUCTIONS:
-1. The data you need IS in the `context` variable.
-2. You must write Python code to read it.
-3. Example: `print(context[0])` or `for doc in context: print(doc)`
-4. Iterate until you find the information.
-5. Do NOT say data is missing without printing `context` first.
+CRITICAL RULES:
+1. Do NOT guess the answer. You MUST execute Python code to see the data.
+2. You MUST `print()` the result of your calculation to see it.
+3. Your `FINAL_ANSWER` must be the ACTUAL VALUE found in the code output.
+4. Do NOT say "Running the code will..." or "The code will find...". Just run it, see the output, then answer.
+
+Example:
+User: "How many invoices?"
+You:
+```python
+print(len(context))
+```
+(System Output: 15)
+You: FINAL_ANSWER: There are 15 invoices.
 
 Variables available:
 - `context`: List of strings (documents).
