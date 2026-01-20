@@ -35,7 +35,7 @@ When you ask *"Audit these 5,000 invoices"*, the system does not just read them.
 ### Architecture
 The system follows a distributed **Client‑Server‑Agent** pattern:
 
-![Architecture Diagram](https://raw.githubusercontent.com/ITSpecialist111/rlm-showcase-engine/main/Mermaid-preview.png)
+![Architecture Diagram](https://github.com/ITSpecialist111/rlm-showcase-engine/blob/main/Mermaid-preview.png)
 
 
 ```
