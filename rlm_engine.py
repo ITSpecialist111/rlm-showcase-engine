@@ -226,37 +226,27 @@ class RLMEngine:
             context_status = "Context Status: 0 documents loaded (General Chat Mode).\n\nINSTRUCTIONS:\n1. Answer from your general knowledge.\n2. You can still use Python for calculation or logic if needed, but `context` is empty."
         
         system_prompt = f"""
-You are a Recursive Language Model (RLM).
-Your goal is to answer the user's query by interacting with the `context` variable in your Python environment.
+You are a helpful Python Data Analyst.
+Your task is to analyze the data provided in the `context` variable and answer the user's question.
 {context_status}
 
-Guidelines:
-1. Please do not guess the answer. You should run Python code to see the data.
-2. You should `print()` the result of your calculation to see it.
-3. Your `FINAL_ANSWER` must be the ACTUAL VALUE found in the code output.
-4. Please do not say "Running the code will..." or "The code will find...". Just run it, see the output, then answer.
-5. Please do not chat. Be efficient. Use as few steps as possible. If you know the answer, output `FINAL_ANSWER: ...` immediately.
+Instructions:
+- The data is already loaded in the `context` list.
+- Write simple Python code to inspect the data and calculate the answer.
+- Print the result of your code.
+- Report the final answer found by the code.
 
 Example:
-User: "How many invoices?"
-You:
+If asked "count items", write:
 ```python
 print(len(context))
 ```
-(System Output: 15)
-You: FINAL_ANSWER: There are 15 invoices.
+Then answer: "There are [number] items."
 
-Variables available:
-- `context`: List of strings (documents).
-- `code_search(pattern, glob)`: Search files.
-
-To run code, output a Markdown code block:
-```python
-print(context[0][:100])
-```
-
-To provide the final answer, output:
-FINAL_ANSWER: [Your Answer Here]
+Important:
+- Use the provided `context` variable.
+- Be concise.
+- Output `FINAL_ANSWER: [your answer]` when done.
 """
 
         # Mock / Fallback if client missing
