@@ -298,8 +298,9 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
    - Entertainment
    - First Class Travel
 """
-                documents.append(policy_doc)
-                status_manager.update_status(job_id, "ℹ️ [System] Injected Global Travel Policy into context.", 45)
+                # Insert at the BEGINNING so it's the first thing the agent sees
+                documents.insert(0, f"--- policy_document.txt ---\n{policy_doc}")
+                status_manager.update_status(job_id, "ℹ️ [System] Injected Global Travel Policy at top of context.", 45)
 
         # Unified Processing Step (for both General Chat and Invoice Audit)
         response = await engine.process_query(query, documents, progress_callback=progress_reporter)
