@@ -3,13 +3,18 @@ import asyncio
 from openai import AsyncAzureOpenAI
 
 ENDPOINT = "https://rlm-showcase-uksouth-resource.openai.azure.com/"
-KEY = "REDACTED_FOUNDRY_KEY"
+# KEY is now loaded from environment variable
 DEPLOYMENT = "gpt-5.1-chat" # from config default
 
 async def test_conn():
     print(f"Testing connection to: {ENDPOINT}")
+    key = os.getenv("FOUNDRY_API_KEY")
+    if not key:
+        print("Error: FOUNDRY_API_KEY environment variable not set.")
+        return
+
     client = AsyncAzureOpenAI(
-        api_key=KEY,
+        api_key=key,
         api_version="2024-02-15-preview",
         azure_endpoint=ENDPOINT
     )

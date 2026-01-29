@@ -2,8 +2,10 @@ import os
 import sys
 from azure.storage.blob import BlobServiceClient
 
-# Connection string from local.settings.json (hardcoded for this script for ease, but normally would load from env)
-CONN_STR = "DefaultEndpointsProtocol=https;AccountName=rgrlmshowcaseuksout80ac;AccountKey=REDACTED_STORAGE_KEY;EndpointSuffix=core.windows.net"
+# Connection string from environment variable
+CONN_STR = os.getenv("AzureWebJobsStorage")
+if not CONN_STR:
+    print("Warning: AzureWebJobsStorage not set. Script may fail if not running locally with valid env.")
 CONTAINER = "demo-invoices"
 
 def list_blobs():
