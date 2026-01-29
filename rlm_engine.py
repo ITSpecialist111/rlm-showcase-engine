@@ -77,7 +77,7 @@ class RLMConfig:
     api_key: str
     deployment: str = "rlm-root-agent" # Updated to match Foundry Agent ID
     max_tokens: int = 4096
-    max_iterations: int = 10
+    max_iterations: int = 30
     timeout_seconds: int = 300
     recursion_depth_limit: int = 3
 
@@ -235,6 +235,7 @@ CRITICAL RULES:
 2. You MUST `print()` the result of your calculation to see it.
 3. Your `FINAL_ANSWER` must be the ACTUAL VALUE found in the code output.
 4. Do NOT say "Running the code will..." or "The code will find...". Just run it, see the output, then answer.
+5. Do NOT chat. Be efficient. Use as few steps as possible. If you know the answer, output `FINAL_ANSWER: ...` immediately.
 
 Example:
 User: "How many invoices?"

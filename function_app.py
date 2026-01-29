@@ -178,7 +178,8 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
         config = RLMConfig(
             foundry_endpoint=settings.FOUNDRY_ENDPOINT,
             api_key=settings.FOUNDRY_API_KEY,
-            deployment=settings.ROOT_AGENT_DEPLOYMENT
+            deployment=settings.ROOT_AGENT_DEPLOYMENT,
+            max_iterations=settings.MAX_ITERATIONS
         )
         engine = create_rlm_engine(config)
         

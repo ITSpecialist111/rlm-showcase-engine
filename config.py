@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # RLM Engine Parameters
     MAX_TOKENS: int = 10000000
     CHUNK_SIZE: int = 100000
-    MAX_ITERATIONS: int = 10
+    MAX_ITERATIONS: int = 30
     TIMEOUT_SECONDS: int = 300
     
     # Infrastructure
