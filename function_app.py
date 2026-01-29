@@ -281,6 +281,25 @@ async def run_audit_task(job_id: str, query: str, documents: list, scenario: str
             if not documents and scenario == "invoice_audit":
                  status_manager.update_status(job_id, "⚠️ [System] No documents found, loading mock context.", 25)
                  documents = ["Invoice 001: $500", "Invoice 002: $200", "Policy: Max travel $1000"]
+            
+            # CRITICAL: Always inject the Global Travel Policy for invoice audits if not present
+            # This ensures the agent has ground truth rules even if the blob container only has invoices.
+            if scenario == "invoice_audit" and not any("Global Travel Policy" in d for d in documents):
+                policy_doc = """
+--- Global Travel Policy 2024 ---
+1. Max Spend Limits:
+   - Meals: $50 per day
+   - Lodging: $200 per night
+   - Flights: Economy class only
+2. Receipt Requirements:
+   - Receipts required for all expenses > $25.
+3. Forbidden Categories:
+   - Alcohol
+   - Entertainment
+   - First Class Travel
+"""
+                documents.append(policy_doc)
+                status_manager.update_status(job_id, "ℹ️ [System] Injected Global Travel Policy into context.", 45)
 
         # Unified Processing Step (for both General Chat and Invoice Audit)
         response = await engine.process_query(query, documents, progress_callback=progress_reporter)
