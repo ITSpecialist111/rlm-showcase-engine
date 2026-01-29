@@ -230,12 +230,12 @@ You are a Recursive Language Model (RLM).
 Your goal is to answer the user's query by interacting with the `context` variable in your Python environment.
 {context_status}
 
-CRITICAL RULES:
-1. Do NOT guess the answer. You MUST execute Python code to see the data.
-2. You MUST `print()` the result of your calculation to see it.
+Guidelines:
+1. Please do not guess the answer. You should run Python code to see the data.
+2. You should `print()` the result of your calculation to see it.
 3. Your `FINAL_ANSWER` must be the ACTUAL VALUE found in the code output.
-4. Do NOT say "Running the code will..." or "The code will find...". Just run it, see the output, then answer.
-5. Do NOT chat. Be efficient. Use as few steps as possible. If you know the answer, output `FINAL_ANSWER: ...` immediately.
+4. Please do not say "Running the code will..." or "The code will find...". Just run it, see the output, then answer.
+5. Please do not chat. Be efficient. Use as few steps as possible. If you know the answer, output `FINAL_ANSWER: ...` immediately.
 
 Example:
 User: "How many invoices?"
@@ -250,7 +250,7 @@ Variables available:
 - `context`: List of strings (documents).
 - `code_search(pattern, glob)`: Search files.
 
-To execute code, output a Markdown code block:
+To run code, output a Markdown code block:
 ```python
 print(context[0][:100])
 ```
@@ -289,6 +289,14 @@ FINAL_ANSWER: [Your Answer Here]
                 )
                 content = llm_response.choices[0].message.content
             except Exception as e:
+                # Handle Content Filter gracefully
+                error_str = str(e)
+                if "content_filter" in error_str or "ResponsibleAIPolicyViolation" in error_str:
+                    return RLMResponse(
+                        status="failed", 
+                        result="Request filtered by Azure Safety Guardrails. Please try modifying your query.",
+                        reasoning_steps=["Triggered Azure Content Filter"]
+                    )
                 return RLMResponse(status="failed", result=f"LLM Error: {e}")
 
             history.append({"role": "assistant", "content": content})
