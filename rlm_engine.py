@@ -231,7 +231,9 @@ Your task is to analyze the data provided in the `context` variable and answer t
 {context_status}
 
 Instructions:
-- The data is already loaded in the `context` list.
+- The variable `context` is ALREADY defined in the environment. It is a list of strings.
+- START your code immediately with `print(len(context))` or `print(context[0])`.
+- Do NOT try to assign `context` yourself. It is there.
 - Write simple Python code to inspect the data and calculate the answer.
 - Print the result of your code.
 - Report the final answer found by the code.
@@ -244,7 +246,7 @@ print(len(context))
 Then answer: "There are [number] items."
 
 Important:
-- Use the provided `context` variable.
+- USE the existing `context` variable.
 - Be concise.
 - Output `FINAL_ANSWER: [your answer]` when done.
 """
